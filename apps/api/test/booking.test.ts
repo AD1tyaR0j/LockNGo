@@ -39,7 +39,9 @@ describe('quote and booking', () => {
 
     const p = await pay(c.token, b.body.payment.id);
     expect(p.body).toMatchObject({ mock: true, outcome: 'BOOKING_CONFIRMED' });
-    const detail = await api().get(`/api/v1/storage/bookings/${b.body.booking.id}`).set(auth(c.token));
+    const detail = await api()
+      .get(`/api/v1/storage/bookings/${b.body.booking.id}`)
+      .set(auth(c.token));
     expect(detail.body.status).toBe('CONFIRMED');
     expect(detail.body.payment.status).toBe('CAPTURED');
     expect(detail.body.events.map((e: { type: string }) => e.type)).toEqual([
@@ -101,7 +103,10 @@ describe('quote and booking', () => {
     const o = await createOutlet();
     const c = await registerCustomer();
     const q = await quote(c.token, o.outletId);
-    const res = await api().post('/api/v1/storage/bookings').set(auth(c.token)).send({ quoteId: q.body.id });
+    const res = await api()
+      .post('/api/v1/storage/bookings')
+      .set(auth(c.token))
+      .send({ quoteId: q.body.id });
     expect(res.status).toBe(400);
   });
 
@@ -115,12 +120,22 @@ describe('quote and booking', () => {
     const q = await quote(owner.token, o.outletId);
     const b = await book(owner.token, q.body.id);
     const id = b.body.booking.id;
-    expect((await api().get(`/api/v1/storage/bookings/${id}`).set(auth(other.token))).status).toBe(404);
-    expect((await api().post(`/api/v1/storage/bookings/${id}/cancel`).set(auth(other.token))).status).toBe(404);
-    expect((await api().post(`/api/v1/storage/bookings/${id}/credential`).set(auth(other.token))).status).toBe(404);
+    expect((await api().get(`/api/v1/storage/bookings/${id}`).set(auth(other.token))).status).toBe(
+      404,
+    );
     expect(
-      (await api().post(`/api/v1/storage/bookings/${id}/access`).set(auth(other.token)).send({ purpose: 'DEPOSIT' }))
-        .status,
+      (await api().post(`/api/v1/storage/bookings/${id}/cancel`).set(auth(other.token))).status,
+    ).toBe(404);
+    expect(
+      (await api().post(`/api/v1/storage/bookings/${id}/credential`).set(auth(other.token))).status,
+    ).toBe(404);
+    expect(
+      (
+        await api()
+          .post(`/api/v1/storage/bookings/${id}/access`)
+          .set(auth(other.token))
+          .send({ purpose: 'DEPOSIT' })
+      ).status,
     ).toBe(404);
     expect((await pay(other.token, b.body.payment.id)).status).toBe(404);
     const list = await api().get('/api/v1/storage/bookings').set(auth(other.token));
@@ -156,9 +171,14 @@ describe('double-booking prevention', () => {
     const later = addHours(now, 5).toISOString();
     await paidBooking(a.token, o.outletId, { durationHours: 2 });
     // Starts after the first ends: fine.
-    expect((await quote(b.token, o.outletId, { startsAt: later, durationHours: 2 })).status).toBe(201);
+    expect((await quote(b.token, o.outletId, { startsAt: later, durationHours: 2 })).status).toBe(
+      201,
+    );
     // Overlaps the first: no availability.
-    const overlapping = await quote(b.token, o.outletId, { startsAt: addHours(now, 1).toISOString(), durationHours: 2 });
+    const overlapping = await quote(b.token, o.outletId, {
+      startsAt: addHours(now, 1).toISOString(),
+      durationHours: 2,
+    });
     expect(overlapping.status).toBe(409);
   });
 
@@ -166,7 +186,10 @@ describe('double-booking prevention', () => {
     const o = await createOutlet([{ code: 'S1', size: 'S' }]);
     const c = await registerCustomer();
     const id = await paidBooking(c.token, o.outletId, { durationHours: 2 });
-    const [orig] = await getDb().select().from(storageBookings).where(sql`id = ${id}`);
+    const [orig] = await getDb()
+      .select()
+      .from(storageBookings)
+      .where(sql`id = ${id}`);
     const insertOverlap = (status: string, ref: string) =>
       getDb().execute(sql`
         WITH q AS (
@@ -260,7 +283,9 @@ describe('payment webhooks', () => {
     const r3 = await send();
     expect(r3.body.outcome).toBe('DUPLICATE');
     const d = await api().get(`/api/v1/storage/bookings/${b.body.booking.id}`).set(auth(c.token));
-    expect(d.body.events.filter((e: { type: string }) => e.type === 'PAYMENT_CAPTURED')).toHaveLength(1);
+    expect(
+      d.body.events.filter((e: { type: string }) => e.type === 'PAYMENT_CAPTURED'),
+    ).toHaveLength(1);
   });
 
   it('rejects webhooks with an invalid signature', async () => {
@@ -268,7 +293,16 @@ describe('payment webhooks', () => {
       .post('/api/v1/webhooks/payments/mock')
       .set('content-type', 'application/json')
       .set('x-mock-signature', 'ab'.repeat(32))
-      .send(JSON.stringify({ id: 'x', type: 'payment.captured', orderId: 'o', paymentId: 'p', amountMinor: 1, currency: 'INR' }));
+      .send(
+        JSON.stringify({
+          id: 'x',
+          type: 'payment.captured',
+          orderId: 'o',
+          paymentId: 'p',
+          amountMinor: 1,
+          currency: 'INR',
+        }),
+      );
     expect(res.status).toBe(401);
   });
 

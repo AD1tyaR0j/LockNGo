@@ -40,7 +40,11 @@ export function createApp() {
   );
 
   app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', paymentProvider: paymentProvider().name, paymentsAreMock: paymentProvider().isMock });
+    res.json({
+      status: 'ok',
+      paymentProvider: paymentProvider().name,
+      paymentsAreMock: paymentProvider().isMock,
+    });
   });
 
   // Webhooks need the raw body: mount before express.json().

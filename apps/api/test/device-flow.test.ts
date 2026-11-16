@@ -48,16 +48,28 @@ describe('storage lifecycle driven by device events', () => {
 
     const poll = await api().get('/api/v1/devices/commands').set(auth(o.deviceToken));
     const cmd = poll.body.commands[0];
-    expect(cmd).toMatchObject({ commandId: req.body.commandId, compartmentCode: 'S1', type: 'UNLOCK' });
+    expect(cmd).toMatchObject({
+      commandId: req.body.commandId,
+      compartmentCode: 'S1',
+      type: 'UNLOCK',
+    });
     await api()
       .post(`/api/v1/devices/commands/${cmd.commandId}/ack`)
       .set(auth(o.deviceToken))
       .send({ result: 'OK', nonce: cmd.nonce });
     expect((await detail(c.token, id)).body.status).toBe('ACCESS_READY');
 
-    await deviceEvent(o.deviceToken, { type: 'DOOR_OPENED', compartmentCode: 'S1', commandId: cmd.commandId });
+    await deviceEvent(o.deviceToken, {
+      type: 'DOOR_OPENED',
+      compartmentCode: 'S1',
+      commandId: cmd.commandId,
+    });
     expect((await detail(c.token, id)).body.status).toBe('ACCESS_READY');
-    await deviceEvent(o.deviceToken, { type: 'DOOR_CLOSED', compartmentCode: 'S1', commandId: cmd.commandId });
+    await deviceEvent(o.deviceToken, {
+      type: 'DOOR_CLOSED',
+      compartmentCode: 'S1',
+      commandId: cmd.commandId,
+    });
     expect((await detail(c.token, id)).body.status).toBe('ACTIVE');
 
     // Compartment shows OCCUPIED to admins; and cannot be booked by others even after the window.
@@ -135,7 +147,11 @@ describe('storage lifecycle driven by device events', () => {
       .post(`/api/v1/devices/commands/${cmd.commandId}/ack`)
       .set(auth(o.deviceToken))
       .send({ result: 'OK', nonce: cmd.nonce });
-    await deviceEvent(o.deviceToken, { type: 'DOOR_OPENED', compartmentCode: 'S1', commandId: cmd.commandId });
+    await deviceEvent(o.deviceToken, {
+      type: 'DOOR_OPENED',
+      compartmentCode: 'S1',
+      commandId: cmd.commandId,
+    });
     vi.spyOn(clock, 'now').mockReturnValue(addSeconds(new Date(), 400));
     const sweep = await runSweep();
     vi.restoreAllMocks();
@@ -173,13 +189,31 @@ describe('device event integrity', () => {
     const o = await createOutlet();
     await heartbeat(o.deviceToken);
     const eventId = randomUUID();
-    const first = await deviceEvent(o.deviceToken, { type: 'DOOR_CLOSED', compartmentCode: 'S1', sequence: 50, eventId });
-    const retry = await deviceEvent(o.deviceToken, { type: 'DOOR_CLOSED', compartmentCode: 'S1', sequence: 50, eventId });
+    const first = await deviceEvent(o.deviceToken, {
+      type: 'DOOR_CLOSED',
+      compartmentCode: 'S1',
+      sequence: 50,
+      eventId,
+    });
+    const retry = await deviceEvent(o.deviceToken, {
+      type: 'DOOR_CLOSED',
+      compartmentCode: 'S1',
+      sequence: 50,
+      eventId,
+    });
     expect(first.body.accepted).toBe(true);
     expect(retry.body).toEqual({ accepted: false, duplicate: true });
 
-    const stale = await deviceEvent(o.deviceToken, { type: 'DOOR_OPENED', compartmentCode: 'S1', sequence: 10 });
-    expect(stale.body).toMatchObject({ accepted: true, applied: false, verificationStatus: 'OUT_OF_ORDER' });
+    const stale = await deviceEvent(o.deviceToken, {
+      type: 'DOOR_OPENED',
+      compartmentCode: 'S1',
+      sequence: 10,
+    });
+    expect(stale.body).toMatchObject({
+      accepted: true,
+      applied: false,
+      verificationStatus: 'OUT_OF_ORDER',
+    });
     const t = await admin();
     const od = await api().get(`/api/v1/admin/outlets/${o.outletId}`).set(auth(t));
     const comp = od.body.lockerBanks[0].compartments[0];
@@ -212,7 +246,10 @@ describe('device event integrity', () => {
   });
 
   it('rejects unknown device tokens', async () => {
-    const res = await api().post('/api/v1/devices/heartbeat').set(auth('y'.repeat(43))).send({});
+    const res = await api()
+      .post('/api/v1/devices/heartbeat')
+      .set(auth('y'.repeat(43)))
+      .send({});
     expect(res.status).toBe(401);
   });
 });
@@ -223,7 +260,9 @@ describe('kiosk PIN credential', () => {
     await heartbeat(o.deviceToken);
     const c = await registerCustomer();
     const id = await paidBooking(c.token, o.outletId);
-    const { body } = await api().post(`/api/v1/storage/bookings/${id}/credential`).set(auth(c.token));
+    const { body } = await api()
+      .post(`/api/v1/storage/bookings/${id}/credential`)
+      .set(auth(c.token));
     const verify = (pin: string) =>
       api()
         .post('/api/v1/devices/access/verify-pin')
@@ -254,7 +293,10 @@ describe('kiosk PIN credential', () => {
     const first = await api().post(`/api/v1/storage/bookings/${id}/credential`).set(auth(c.token));
     const second = await api().post(`/api/v1/storage/bookings/${id}/credential`).set(auth(c.token));
     const verify = (pin: string) =>
-      api().post('/api/v1/devices/access/verify-pin').set(auth(o.deviceToken)).send({ compartmentCode: 'S1', pin });
+      api()
+        .post('/api/v1/devices/access/verify-pin')
+        .set(auth(o.deviceToken))
+        .send({ compartmentCode: 'S1', pin });
     if (first.body.pin !== second.body.pin) expect((await verify(first.body.pin)).status).toBe(403);
     expect((await verify(second.body.pin)).status).toBe(202);
   });

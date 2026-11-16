@@ -102,7 +102,12 @@ export interface BookingDetail {
   reference: string;
   status: BookingStatus;
   outlet: { id: string; name: string; address: string };
-  compartment: { code: string; size: CompartmentSize; lockerBankLabel: string; isSimulated: boolean };
+  compartment: {
+    code: string;
+    size: CompartmentSize;
+    lockerBankLabel: string;
+    isSimulated: boolean;
+  };
   startsAt: string;
   expiresAt: string;
   paymentHoldExpiresAt: string | null;
@@ -111,7 +116,12 @@ export interface BookingDetail {
   payment: PaymentSummary | null;
   /** Expected next physical action, when any. */
   nextAccessPurpose: AccessPurpose | null;
-  pendingCommand: { id: string; purpose: AccessPurpose; status: DeviceCommandStatus; expiresAt: string } | null;
+  pendingCommand: {
+    id: string;
+    purpose: AccessPurpose;
+    status: DeviceCommandStatus;
+    expiresAt: string;
+  } | null;
   events: BookingEvent[];
   createdAt: string;
 }

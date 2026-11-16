@@ -26,7 +26,9 @@ export default function BookingsPage() {
   const params = new URLSearchParams({ limit: String(PAGE), offset: String(offset) });
   if (q) params.set('q', q);
   if (status) params.set('status', status);
-  const { data, error, loading, reload } = useAdminData<{ items: Row[]; total: number }>(`admin/bookings?${params}`);
+  const { data, error, loading, reload } = useAdminData<{ items: Row[]; total: number }>(
+    `admin/bookings?${params}`,
+  );
 
   function search(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -53,13 +55,25 @@ export default function BookingsPage() {
           Status
           <select name="status" defaultValue={status}>
             <option value="">Any</option>
-            {BOOKING_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+            {BOOKING_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
           </select>
         </label>
-        <button className="primary" style={{ alignSelf: 'flex-end' }}>Search</button>
+        <button className="primary" style={{ alignSelf: 'flex-end' }}>
+          Search
+        </button>
       </form>
       <div className="card">
-        <DataState loading={loading} error={error} empty={!data?.items.length} emptyText="No bookings match." onRetry={reload}>
+        <DataState
+          loading={loading}
+          error={error}
+          empty={!data?.items.length}
+          emptyText="No bookings match."
+          onRetry={reload}
+        >
           <div className="table-wrap">
             <table>
               <thead>
@@ -74,11 +88,21 @@ export default function BookingsPage() {
               <tbody>
                 {data?.items.map((b) => (
                   <tr key={b.id}>
-                    <td><Link href={`/bookings/${b.id}`} className="mono">{b.reference}</Link></td>
-                    <td>{b.outletName} · <span className="mono">{b.compartmentCode}</span></td>
-                    <td>{formatTime(b.startsAt)} → {formatTime(b.expiresAt)}</td>
+                    <td>
+                      <Link href={`/bookings/${b.id}`} className="mono">
+                        {b.reference}
+                      </Link>
+                    </td>
+                    <td>
+                      {b.outletName} · <span className="mono">{b.compartmentCode}</span>
+                    </td>
+                    <td>
+                      {formatTime(b.startsAt)} → {formatTime(b.expiresAt)}
+                    </td>
                     <td>{formatInr(b.amountMinor)}</td>
-                    <td><StatusBadge status={b.status} /></td>
+                    <td>
+                      <StatusBadge status={b.status} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -90,8 +114,18 @@ export default function BookingsPage() {
                 {offset + 1}–{Math.min(offset + PAGE, data.total)} of {data.total}
               </span>
               <div className="row">
-                <button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))}>Previous</button>
-                <button disabled={offset + PAGE >= data.total} onClick={() => setOffset(offset + PAGE)}>Next</button>
+                <button
+                  disabled={offset === 0}
+                  onClick={() => setOffset(Math.max(0, offset - PAGE))}
+                >
+                  Previous
+                </button>
+                <button
+                  disabled={offset + PAGE >= data.total}
+                  onClick={() => setOffset(offset + PAGE)}
+                >
+                  Next
+                </button>
               </div>
             </div>
           ) : null}

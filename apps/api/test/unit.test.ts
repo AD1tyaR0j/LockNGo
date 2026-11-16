@@ -85,14 +85,21 @@ describe('booking state machine', () => {
 
   it('derives the next physical action', () => {
     const now = new Date('2026-01-01T10:00:00Z');
-    const window = { startsAt: new Date('2026-01-01T09:00:00Z'), expiresAt: new Date('2026-01-01T12:00:00Z') };
+    const window = {
+      startsAt: new Date('2026-01-01T09:00:00Z'),
+      expiresAt: new Date('2026-01-01T12:00:00Z'),
+    };
     expect(nextAccessPurpose({ ...window, status: 'ACCESS_READY' }, now)).toBe('DEPOSIT');
     expect(nextAccessPurpose({ ...window, status: 'ACTIVE' }, now)).toBe('RETRIEVE');
     expect(nextAccessPurpose({ ...window, status: 'PENDING_PAYMENT' }, now)).toBeNull();
     // Overstay: retrieval is still allowed after the paid window ends.
-    expect(nextAccessPurpose({ ...window, status: 'ACTIVE' }, new Date('2026-01-02T00:00:00Z'))).toBe('RETRIEVE');
+    expect(
+      nextAccessPurpose({ ...window, status: 'ACTIVE' }, new Date('2026-01-02T00:00:00Z')),
+    ).toBe('RETRIEVE');
     // Deposit only inside the window.
-    expect(nextAccessPurpose({ ...window, status: 'CONFIRMED' }, new Date('2026-01-01T08:00:00Z'))).toBeNull();
+    expect(
+      nextAccessPurpose({ ...window, status: 'CONFIRMED' }, new Date('2026-01-01T08:00:00Z')),
+    ).toBeNull();
   });
 });
 
@@ -100,7 +107,9 @@ describe('compartment operational state machine', () => {
   it('allows the documented transitions', () => {
     expect(nextCompartmentStatus('IN_SERVICE', 'DISABLE')).toBe('OUT_OF_SERVICE');
     expect(nextCompartmentStatus('OUT_OF_SERVICE', 'RETURN_TO_SERVICE')).toBe('IN_SERVICE');
-    expect(nextCompartmentStatus('OUT_OF_SERVICE', 'MARK_NEEDS_INSPECTION')).toBe('NEEDS_INSPECTION');
+    expect(nextCompartmentStatus('OUT_OF_SERVICE', 'MARK_NEEDS_INSPECTION')).toBe(
+      'NEEDS_INSPECTION',
+    );
     expect(nextCompartmentStatus('NEEDS_INSPECTION', 'RETURN_TO_SERVICE')).toBe('IN_SERVICE');
   });
 

@@ -23,7 +23,11 @@ const authLimiter = rateLimit({
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: (req: { requestId: string }) => ({
-    error: { code: 'RATE_LIMITED', message: 'Too many attempts. Try again later.', requestId: req.requestId },
+    error: {
+      code: 'RATE_LIMITED',
+      message: 'Too many attempts. Try again later.',
+      requestId: req.requestId,
+    },
   }),
 });
 

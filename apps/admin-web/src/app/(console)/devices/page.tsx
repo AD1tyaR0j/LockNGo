@@ -15,13 +15,22 @@ export default function DevicesPage() {
         <div>
           <h1>Devices</h1>
           <p className="muted">
-            Status reflects the last heartbeat the API received. Devices go OFFLINE after missed heartbeats.
+            Status reflects the last heartbeat the API received. Devices go OFFLINE after missed
+            heartbeats.
           </p>
         </div>
-        <button onClick={reload} disabled={loading}>Refresh</button>
+        <button onClick={reload} disabled={loading}>
+          Refresh
+        </button>
       </div>
       <div className="card">
-        <DataState loading={loading} error={error} empty={!data?.items.length} emptyText="No devices registered." onRetry={reload}>
+        <DataState
+          loading={loading}
+          error={error}
+          empty={!data?.items.length}
+          emptyText="No devices registered."
+          onRetry={reload}
+        >
           <div className="table-wrap">
             <table>
               <thead>
@@ -37,13 +46,19 @@ export default function DevicesPage() {
                 {data?.items.map((d) => (
                   <tr key={d.id}>
                     <td>
-                      <span className="mono">{d.deviceIdentifier}</span> <SimBadge simulated={d.isSimulated} />
+                      <span className="mono">{d.deviceIdentifier}</span>{' '}
+                      <SimBadge simulated={d.isSimulated} />
                     </td>
                     <td>
-                      <Link href={`/outlets/${d.outlet.id}`}>{d.outlet.name}</Link> · {d.lockerBankLabel}
+                      <Link href={`/outlets/${d.outlet.id}`}>{d.outlet.name}</Link> ·{' '}
+                      {d.lockerBankLabel}
                     </td>
-                    <td>{d.hardwareModel} · <span className="mono">{d.firmwareVersion}</span></td>
-                    <td><StatusBadge status={d.status} /></td>
+                    <td>
+                      {d.hardwareModel} · <span className="mono">{d.firmwareVersion}</span>
+                    </td>
+                    <td>
+                      <StatusBadge status={d.status} />
+                    </td>
                     <td>{formatTime(d.lastSeenAt)}</td>
                   </tr>
                 ))}

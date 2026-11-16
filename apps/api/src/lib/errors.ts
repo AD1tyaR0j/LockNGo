@@ -9,8 +9,7 @@ export class AppError extends Error {
   }
 }
 
-export const notFound = (what = 'Resource') =>
-  new AppError(404, 'NOT_FOUND', `${what} not found`);
+export const notFound = (what = 'Resource') => new AppError(404, 'NOT_FOUND', `${what} not found`);
 export const forbidden = () =>
   new AppError(403, 'FORBIDDEN', 'You do not have permission to do this');
 export const unauthenticated = () =>

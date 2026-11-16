@@ -70,7 +70,12 @@ export async function pollCommands(device: AuthDevice) {
   const codes = await getDb()
     .select({ id: compartments.id, code: compartments.code })
     .from(compartments)
-    .where(inArray(compartments.id, rows.map((r) => r.compartmentId)));
+    .where(
+      inArray(
+        compartments.id,
+        rows.map((r) => r.compartmentId),
+      ),
+    );
   const codeById = new Map(codes.map((c) => [c.id, c.code]));
   return rows.map((c) => ({
     commandId: c.id,
@@ -84,7 +89,11 @@ export async function pollCommands(device: AuthDevice) {
   }));
 }
 
-export async function acknowledgeCommand(device: AuthDevice, commandId: string, ack: DeviceCommandAck) {
+export async function acknowledgeCommand(
+  device: AuthDevice,
+  commandId: string,
+  ack: DeviceCommandAck,
+) {
   return getDb().transaction(async (tx) => {
     const [cmd] = await tx
       .select()
@@ -92,7 +101,8 @@ export async function acknowledgeCommand(device: AuthDevice, commandId: string, 
       .where(and(eq(deviceCommands.id, commandId), eq(deviceCommands.deviceId, device.id)))
       .for('update');
     if (!cmd) throw notFound('Command');
-    if (cmd.nonce !== ack.nonce) throw new AppError(400, 'NONCE_MISMATCH', 'Command nonce mismatch');
+    if (cmd.nonce !== ack.nonce)
+      throw new AppError(400, 'NONCE_MISMATCH', 'Command nonce mismatch');
     const target = ack.result === 'OK' ? 'ACKNOWLEDGED' : 'FAILED';
     if (cmd.status === target || (target === 'ACKNOWLEDGED' && cmd.status === 'COMPLETED')) {
       return { status: cmd.status, duplicate: true }; // idempotent retry
@@ -102,7 +112,10 @@ export async function acknowledgeCommand(device: AuthDevice, commandId: string, 
     }
     const now = clock.now();
     if (cmd.expiresAt <= now) {
-      await tx.update(deviceCommands).set({ status: 'EXPIRED' }).where(eq(deviceCommands.id, cmd.id));
+      await tx
+        .update(deviceCommands)
+        .set({ status: 'EXPIRED' })
+        .where(eq(deviceCommands.id, cmd.id));
       throw new AppError(410, 'COMMAND_EXPIRED', 'Command expired before acknowledgement');
     }
     await tx
@@ -128,11 +141,18 @@ export async function acknowledgeCommand(device: AuthDevice, commandId: string, 
   });
 }
 
-async function markNeedsInspection(tx: Tx, device: AuthDevice, compartmentId: string, reason: string) {
+async function markNeedsInspection(
+  tx: Tx,
+  device: AuthDevice,
+  compartmentId: string,
+  reason: string,
+) {
   const res = await tx
     .update(compartments)
     .set({ operationalStatus: 'NEEDS_INSPECTION' })
-    .where(and(eq(compartments.id, compartmentId), eq(compartments.operationalStatus, 'IN_SERVICE')))
+    .where(
+      and(eq(compartments.id, compartmentId), eq(compartments.operationalStatus, 'IN_SERVICE')),
+    )
     .returning({ id: compartments.id });
   if (res.length) {
     await audit(tx, {
@@ -164,7 +184,12 @@ export async function ingestDeviceEvent(device: AuthDevice, e: DeviceEventInput)
       const [c] = await tx
         .select({ id: compartments.id })
         .from(compartments)
-        .where(and(eq(compartments.lockerBankId, device.lockerBankId), eq(compartments.code, e.compartmentCode)));
+        .where(
+          and(
+            eq(compartments.lockerBankId, device.lockerBankId),
+            eq(compartments.code, e.compartmentCode),
+          ),
+        );
       if (!c) throw new AppError(400, 'UNKNOWN_COMPARTMENT', 'Compartment not on this device');
       compartmentId = c.id;
     }
@@ -194,7 +219,8 @@ export async function ingestDeviceEvent(device: AuthDevice, e: DeviceEventInput)
     switch (e.type) {
       case 'DOOR_OPENED':
       case 'DOOR_CLOSED': {
-        if (!compartmentId) throw new AppError(400, 'COMPARTMENT_REQUIRED', 'Door events need a compartment');
+        if (!compartmentId)
+          throw new AppError(400, 'COMPARTMENT_REQUIRED', 'Door events need a compartment');
         await tx
           .update(compartments)
           .set({ doorState: e.type === 'DOOR_OPENED' ? 'OPEN' : 'CLOSED', doorStateAt: occurredAt })
@@ -265,7 +291,10 @@ async function applyDoorEvent(
       return;
     }
     if (!cmd.doorOpenedAt) {
-      await tx.update(deviceCommands).set({ doorOpenedAt: now }).where(eq(deviceCommands.id, cmd.id));
+      await tx
+        .update(deviceCommands)
+        .set({ doorOpenedAt: now })
+        .where(eq(deviceCommands.id, cmd.id));
       if (cmd.bookingId) {
         await recordBookingEvent(tx, cmd.bookingId, 'DOOR_OPENED', actor, { commandId: cmd.id });
       }
@@ -318,7 +347,12 @@ export async function verifyPinAtDevice(device: AuthDevice, compartmentCode: str
     const [c] = await tx
       .select({ id: compartments.id })
       .from(compartments)
-      .where(and(eq(compartments.lockerBankId, device.lockerBankId), eq(compartments.code, compartmentCode)));
+      .where(
+        and(
+          eq(compartments.lockerBankId, device.lockerBankId),
+          eq(compartments.code, compartmentCode),
+        ),
+      );
     const denied = () => new AppError(403, 'ACCESS_DENIED', 'Invalid or expired PIN');
     if (!c) throw denied();
     const [cred] = await tx
@@ -361,7 +395,12 @@ export async function verifyPinAtDevice(device: AuthDevice, compartmentCode: str
       .for('update');
     if (!b) throw denied();
     const purpose = b.status === 'ACTIVE' ? 'RETRIEVE' : 'DEPOSIT';
-    const cmd = await issueUnlockCommand(tx, { booking: b, purpose, actor: deviceActor(device), via: 'PIN' });
+    const cmd = await issueUnlockCommand(tx, {
+      booking: b,
+      purpose,
+      actor: deviceActor(device),
+      via: 'PIN',
+    });
     return { ok: true as const, commandId: cmd.id, purpose };
   });
 }

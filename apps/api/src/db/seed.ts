@@ -97,7 +97,10 @@ export async function seed() {
   const db = getDb();
 
   for (const u of DEMO_USERS) {
-    const [existing] = await db.select().from(users).where(sql`lower(${users.email}) = ${u.email}`);
+    const [existing] = await db
+      .select()
+      .from(users)
+      .where(sql`lower(${users.email}) = ${u.email}`);
     const passwordHash = await hashPassword(password);
     if (existing) {
       // Demo accounts only: keep their password in sync with the current seed password.
@@ -105,15 +108,19 @@ export async function seed() {
     }
     const userId =
       existing?.id ??
-      (await db.insert(users).values({ name: u.name, email: u.email, passwordHash }).returning())[0]!
-        .id;
+      (
+        await db.insert(users).values({ name: u.name, email: u.email, passwordHash }).returning()
+      )[0]!.id;
     for (const r of u.roles) {
       const [role] = await db.select().from(roles).where(eq(roles.name, r));
       await db.insert(userRoles).values({ userId, roleId: role!.id }).onConflictDoNothing();
     }
   }
 
-  for (const [size, p] of Object.entries(DEMO_PRICING) as [CompartmentSize, { base: number; perHour: number }][]) {
+  for (const [size, p] of Object.entries(DEMO_PRICING) as [
+    CompartmentSize,
+    { base: number; perHour: number },
+  ][]) {
     const [active] = await db
       .select()
       .from(pricingRules)
@@ -130,7 +137,12 @@ export async function seed() {
     }
   }
 
-  const simDevices: { deviceIdentifier: string; outlet: string; token: string; compartments: string[] }[] = [];
+  const simDevices: {
+    deviceIdentifier: string;
+    outlet: string;
+    token: string;
+    compartments: string[];
+  }[] = [];
   for (const o of DEMO_OUTLETS) {
     let [outlet] = await db.select().from(outlets).where(eq(outlets.name, o.name));
     if (!outlet) {
@@ -198,7 +210,9 @@ export async function seed() {
     ),
     { mode: 0o600 },
   );
-  console.log(`Seeded demo data. Demo users (password from SEED_DEMO_PASSWORD or the documented dev default):`);
+  console.log(
+    `Seeded demo data. Demo users (password from SEED_DEMO_PASSWORD or the documented dev default):`,
+  );
   for (const u of DEMO_USERS) console.log(`  ${u.email.padEnd(24)} ${u.roles.join(', ')}`);
   console.log(`Simulated device tokens written to ${SIM_FILE}`);
 }

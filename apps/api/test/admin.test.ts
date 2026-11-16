@@ -1,7 +1,16 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { closeDb, getDb } from '../src/db/client.js';
-import { admin, api, auth, createOutlet, heartbeat, paidBooking, quote, registerCustomer } from './helpers.js';
+import {
+  admin,
+  api,
+  auth,
+  createOutlet,
+  heartbeat,
+  paidBooking,
+  quote,
+  registerCustomer,
+} from './helpers.js';
 
 afterAll(closeDb);
 
@@ -31,7 +40,9 @@ describe('admin inventory and compartment control', () => {
       .post(`/api/v1/admin/compartments/${o.compartmentIds[bookedCode]}/status`)
       .set(auth(t))
       .send({ action: 'DISABLE', reason: 'Lock sensor fault' });
-    expect(disableBooked.body.affectedBookings.map((b: { id: string }) => b.id)).toEqual([bookingId]);
+    expect(disableBooked.body.affectedBookings.map((b: { id: string }) => b.id)).toEqual([
+      bookingId,
+    ]);
 
     // The customer can no longer be let into an out-of-service compartment.
     await heartbeat(o.deviceToken);
@@ -74,16 +85,23 @@ describe('admin inventory and compartment control', () => {
       actorType: 'USER',
       metadata: { from: 'IN_SERVICE', to: 'NEEDS_INSPECTION', reason: 'Routine check' },
     });
-    const dev = await api().get('/api/v1/admin/audit').query({ resourceId: o.deviceId }).set(auth(t));
+    const dev = await api()
+      .get('/api/v1/admin/audit')
+      .query({ resourceId: o.deviceId })
+      .set(auth(t));
     expect(dev.body.items.map((a: { action: string }) => a.action)).toContain('device.registered');
   });
 
   it('audit logs and booking events are append-only at the database level', async () => {
     await createOutlet();
     const appendOnly = { cause: { message: expect.stringMatching(/append-only/) } };
-    await expect(getDb().execute(sql`UPDATE audit_logs SET action = 'tampered'`)).rejects.toMatchObject(appendOnly);
+    await expect(
+      getDb().execute(sql`UPDATE audit_logs SET action = 'tampered'`),
+    ).rejects.toMatchObject(appendOnly);
     await expect(getDb().execute(sql`DELETE FROM audit_logs`)).rejects.toMatchObject(appendOnly);
-    await expect(getDb().execute(sql`DELETE FROM booking_events`)).rejects.toMatchObject(appendOnly);
+    await expect(getDb().execute(sql`DELETE FROM booking_events`)).rejects.toMatchObject(
+      appendOnly,
+    );
   });
 
   it('device tokens are returned once and never stored in plaintext', async () => {
@@ -121,7 +139,10 @@ describe('admin inventory and compartment control', () => {
     const c = await registerCustomer();
     const id = await paidBooking(c.token, o.outletId);
     const d = await api().get(`/api/v1/storage/bookings/${id}`).set(auth(c.token));
-    const search = await api().get('/api/v1/admin/bookings').query({ q: d.body.reference }).set(auth(t));
+    const search = await api()
+      .get('/api/v1/admin/bookings')
+      .query({ q: d.body.reference })
+      .set(auth(t));
     expect(search.body.items).toHaveLength(1);
     const staffView = await api().get(`/api/v1/admin/bookings/${id}`).set(auth(t));
     expect(staffView.status).toBe(200);

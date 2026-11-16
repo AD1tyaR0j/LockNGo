@@ -42,14 +42,19 @@ storageRouter.use(requirePermission('storage:book'));
 
 storageRouter.post('/quotes', async (req, res) => {
   const user = requireUser(req);
-  res.status(201).json(await createStorageQuote(user.id, storageQuoteRequestSchema.parse(req.body)));
+  res
+    .status(201)
+    .json(await createStorageQuote(user.id, storageQuoteRequestSchema.parse(req.body)));
 });
 
 storageRouter.post('/bookings', async (req, res) => {
   const user = requireUser(req);
   const key = req.header('idempotency-key');
   if (!key || !/^[A-Za-z0-9_-]{8,100}$/.test(key)) {
-    throw badRequest('IDEMPOTENCY_KEY_REQUIRED', 'An Idempotency-Key header (8–100 chars) is required');
+    throw badRequest(
+      'IDEMPOTENCY_KEY_REQUIRED',
+      'An Idempotency-Key header (8–100 chars) is required',
+    );
   }
   const input = createBookingSchema.parse(req.body);
   const result = await createBooking({
@@ -110,6 +115,7 @@ storageRouter.post('/bookings/:bookingId/access', accessLimiter, async (req, res
   const { purpose } = accessRequestSchema.parse(req.body);
   res
     .status(202)
-    .json(await requestAccessFromApp(user.id, bookingId(req.params.bookingId), purpose, req.requestId));
+    .json(
+      await requestAccessFromApp(user.id, bookingId(req.params.bookingId), purpose, req.requestId),
+    );
 });
-

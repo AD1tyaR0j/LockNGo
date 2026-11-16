@@ -11,32 +11,41 @@ interface Detail {
 }
 
 type Action = 'DISABLE' | 'MARK_NEEDS_INSPECTION' | 'RETURN_TO_SERVICE';
-const ACTIONS: Record<AdminCompartment['operationalStatus'], { action: Action; label: string }[]> = {
-  IN_SERVICE: [
-    { action: 'DISABLE', label: 'Disable' },
-    { action: 'MARK_NEEDS_INSPECTION', label: 'Flag inspection' },
-  ],
-  NEEDS_INSPECTION: [
-    { action: 'RETURN_TO_SERVICE', label: 'Return to service' },
-    { action: 'DISABLE', label: 'Disable' },
-  ],
-  OUT_OF_SERVICE: [
-    { action: 'RETURN_TO_SERVICE', label: 'Return to service' },
-    { action: 'MARK_NEEDS_INSPECTION', label: 'Flag inspection' },
-  ],
-};
+const ACTIONS: Record<AdminCompartment['operationalStatus'], { action: Action; label: string }[]> =
+  {
+    IN_SERVICE: [
+      { action: 'DISABLE', label: 'Disable' },
+      { action: 'MARK_NEEDS_INSPECTION', label: 'Flag inspection' },
+    ],
+    NEEDS_INSPECTION: [
+      { action: 'RETURN_TO_SERVICE', label: 'Return to service' },
+      { action: 'DISABLE', label: 'Disable' },
+    ],
+    OUT_OF_SERVICE: [
+      { action: 'RETURN_TO_SERVICE', label: 'Return to service' },
+      { action: 'MARK_NEEDS_INSPECTION', label: 'Flag inspection' },
+    ],
+  };
 
-function CompartmentCard({ c, onChanged }: { c: AdminCompartment; onChanged: (msg: string) => void }) {
+function CompartmentCard({
+  c,
+  onChanged,
+}: {
+  c: AdminCompartment;
+  onChanged: (msg: string) => void;
+}) {
   const [busy, setBusy] = useState(false);
   async function run(action: Action, label: string) {
-    const reason = window.prompt(`${label} compartment ${c.code}. Reason (required, recorded in the audit log):`);
+    const reason = window.prompt(
+      `${label} compartment ${c.code}. Reason (required, recorded in the audit log):`,
+    );
     if (!reason || reason.trim().length < 3) return;
     setBusy(true);
     try {
-      const r = await adminFetch<{ operationalStatus: string; affectedBookings: { reference: string; status: string }[] }>(
-        `admin/compartments/${c.id}/status`,
-        { method: 'POST', body: { action, reason } },
-      );
+      const r = await adminFetch<{
+        operationalStatus: string;
+        affectedBookings: { reference: string; status: string }[];
+      }>(`admin/compartments/${c.id}/status`, { method: 'POST', body: { action, reason } });
       onChanged(
         `${c.code} is now ${r.operationalStatus.replaceAll('_', ' ')}.` +
           (r.affectedBookings.length
@@ -61,7 +70,12 @@ function CompartmentCard({ c, onChanged }: { c: AdminCompartment; onChanged: (ms
       </span>
       <div className="row">
         {ACTIONS[c.operationalStatus].map((a) => (
-          <button key={a.action} className={`small ${a.action === 'DISABLE' ? 'danger' : ''}`} disabled={busy} onClick={() => run(a.action, a.label)}>
+          <button
+            key={a.action}
+            className={`small ${a.action === 'DISABLE' ? 'danger' : ''}`}
+            disabled={busy}
+            onClick={() => run(a.action, a.label)}
+          >
             {a.label}
           </button>
         ))}
@@ -96,25 +110,46 @@ function RegisterDevice({ bank, onDone }: { bank: AdminLockerBank; onDone: () =>
   if (token) {
     return (
       <div className="alert warn stack">
-        <strong>Device token — shown once. Store it in the device&apos;s secure provisioning store now.</strong>
-        <code className="mono" style={{ wordBreak: 'break-all' }}>{token}</code>
-        <span>For the simulator: SIM_DEVICE_ID=&lt;identifier&gt; SIM_DEVICE_TOKEN=&lt;token&gt; pnpm sim</span>
-        <div><button onClick={onDone}>I have stored it</button></div>
+        <strong>
+          Device token — shown once. Store it in the device&apos;s secure provisioning store now.
+        </strong>
+        <code className="mono" style={{ wordBreak: 'break-all' }}>
+          {token}
+        </code>
+        <span>
+          For the simulator: SIM_DEVICE_ID=&lt;identifier&gt; SIM_DEVICE_TOKEN=&lt;token&gt; pnpm
+          sim
+        </span>
+        <div>
+          <button onClick={onDone}>I have stored it</button>
+        </div>
       </div>
     );
   }
   return (
     <form className="stack" onSubmit={submit}>
       <div className="form-grid">
-        <label>Device identifier<input name="deviceIdentifier" required pattern="[A-Za-z0-9._-]{3,64}" /></label>
-        <label>Hardware model<input name="hardwareModel" required defaultValue="SIMULATOR" /></label>
-        <label>Firmware<input name="firmwareVersion" required defaultValue="sim-0.1.0" /></label>
+        <label>
+          Device identifier
+          <input name="deviceIdentifier" required pattern="[A-Za-z0-9._-]{3,64}" />
+        </label>
+        <label>
+          Hardware model
+          <input name="hardwareModel" required defaultValue="SIMULATOR" />
+        </label>
+        <label>
+          Firmware
+          <input name="firmwareVersion" required defaultValue="sim-0.1.0" />
+        </label>
         <label style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <input name="isSimulated" type="checkbox" defaultChecked style={{ minHeight: 0 }} /> Simulated device
+          <input name="isSimulated" type="checkbox" defaultChecked style={{ minHeight: 0 }} />{' '}
+          Simulated device
         </label>
       </div>
       {error ? <div className="alert error">{error}</div> : null}
-      <div><button className="primary">Register device</button></div>
+      <div>
+        <button className="primary">Register device</button>
+      </div>
     </form>
   );
 }
@@ -131,7 +166,11 @@ function AddLockerBank({ outletId, onDone }: { outletId: string; onDone: () => v
       .filter(Boolean)
       .map((entry) => {
         const [code, size, kg] = entry.split(':');
-        return { code: code?.toUpperCase() ?? '', size: (size?.toUpperCase() ?? 'S') as CompartmentSize, maxWeightGrams: Number(kg ?? 10) * 1000 };
+        return {
+          code: code?.toUpperCase() ?? '',
+          size: (size?.toUpperCase() ?? 'S') as CompartmentSize,
+          maxWeightGrams: Number(kg ?? 10) * 1000,
+        };
       });
     try {
       await adminFetch(`admin/outlets/${outletId}/locker-banks`, {
@@ -147,15 +186,23 @@ function AddLockerBank({ outletId, onDone }: { outletId: string; onDone: () => v
     <form className="card stack" onSubmit={submit}>
       <h2>Add locker bank</h2>
       <div className="form-grid">
-        <label>Label<input name="label" required maxLength={60} defaultValue="B" /></label>
-        <label>Model<input name="model" required defaultValue="SIMULATED-10" /></label>
+        <label>
+          Label
+          <input name="label" required maxLength={60} defaultValue="B" />
+        </label>
+        <label>
+          Model
+          <input name="model" required defaultValue="SIMULATED-10" />
+        </label>
       </div>
       <label>
         Compartments (code:size:max-kg, comma separated)
         <input name="layout" defaultValue="S1:S:5, S2:S:5, M1:M:15, L1:L:25" />
       </label>
       {error ? <div className="alert error">{error}</div> : null}
-      <div><button className="primary">Create locker bank</button></div>
+      <div>
+        <button className="primary">Create locker bank</button>
+      </div>
     </form>
   );
 }
@@ -189,13 +236,21 @@ export default function OutletDetailPage({ params }: { params: Promise<{ outletI
               </h1>
               <p className="muted">
                 {data.outlet.address}, {data.outlet.city} {data.outlet.postalCode} ·{' '}
-                {data.outlet.operatingHours.is24x7 ? 'Open 24×7' : `Open ${data.outlet.operatingHours.open}–${data.outlet.operatingHours.close} IST`}
+                {data.outlet.operatingHours.is24x7
+                  ? 'Open 24×7'
+                  : `Open ${data.outlet.operatingHours.open}–${data.outlet.operatingHours.close} IST`}
               </p>
             </div>
             <div className="row">
               <StatusBadge status={data.outlet.status} />
-              {data.outlet.status !== 'ACTIVE' ? <button onClick={() => setStatus('ACTIVE')}>Activate</button> : null}
-              {data.outlet.status === 'ACTIVE' ? <button className="danger" onClick={() => setStatus('SUSPENDED')}>Suspend</button> : null}
+              {data.outlet.status !== 'ACTIVE' ? (
+                <button onClick={() => setStatus('ACTIVE')}>Activate</button>
+              ) : null}
+              {data.outlet.status === 'ACTIVE' ? (
+                <button className="danger" onClick={() => setStatus('SUSPENDED')}>
+                  Suspend
+                </button>
+              ) : null}
               <button onClick={reload}>Refresh</button>
             </div>
           </div>
@@ -204,7 +259,9 @@ export default function OutletDetailPage({ params }: { params: Promise<{ outletI
               {message}
             </div>
           ) : null}
-          {data.lockerBanks.length === 0 ? <div className="card state">No locker banks yet.</div> : null}
+          {data.lockerBanks.length === 0 ? (
+            <div className="card state">No locker banks yet.</div>
+          ) : null}
           {data.lockerBanks.map((bank) => (
             <section key={bank.id} className="card stack">
               <div className="row" style={{ justifyContent: 'space-between' }}>
@@ -231,7 +288,11 @@ export default function OutletDetailPage({ params }: { params: Promise<{ outletI
                   }}
                 />
               ) : null}
-              {!bank.device ? <div className="alert warn">No controller registered: compartments in this bank cannot be booked.</div> : null}
+              {!bank.device ? (
+                <div className="alert warn">
+                  No controller registered: compartments in this bank cannot be booked.
+                </div>
+              ) : null}
               <div className="compartments">
                 {bank.compartments.map((c) => (
                   <CompartmentCard
@@ -255,7 +316,9 @@ export default function OutletDetailPage({ params }: { params: Promise<{ outletI
               }}
             />
           ) : (
-            <div><button onClick={() => setAddingBank(true)}>Add locker bank</button></div>
+            <div>
+              <button onClick={() => setAddingBank(true)}>Add locker bank</button>
+            </div>
           )}
         </div>
       ) : null}

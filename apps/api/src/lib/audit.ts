@@ -2,9 +2,7 @@ import type { DbOrTx } from '../db/client.js';
 import { auditLogs } from '../db/schema.js';
 
 export type Actor =
-  | { type: 'USER'; id: string }
-  | { type: 'DEVICE'; id: string }
-  | { type: 'SYSTEM'; id?: string };
+  { type: 'USER'; id: string } | { type: 'DEVICE'; id: string } | { type: 'SYSTEM'; id?: string };
 
 export interface AuditEntry {
   actor: Actor;

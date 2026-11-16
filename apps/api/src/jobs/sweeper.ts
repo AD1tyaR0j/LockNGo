@@ -39,10 +39,14 @@ export async function runSweep(): Promise<SweepResult> {
     .select({ id: storageBookings.id })
     .from(storageBookings)
     .where(
-      and(eq(storageBookings.status, 'PENDING_PAYMENT'), lte(storageBookings.paymentHoldExpiresAt, now)),
+      and(
+        eq(storageBookings.status, 'PENDING_PAYMENT'),
+        lte(storageBookings.paymentHoldExpiresAt, now),
+      ),
     );
   for (const { id } of holds) {
-    if (await tryTransition(id, 'PENDING_PAYMENT', 'EXPIRED', 'PAYMENT_HOLD_EXPIRED')) result.expiredHolds++;
+    if (await tryTransition(id, 'PENDING_PAYMENT', 'EXPIRED', 'PAYMENT_HOLD_EXPIRED'))
+      result.expiredHolds++;
   }
 
   // 2. Paid bookings whose window ended without any deposit.
@@ -57,7 +61,8 @@ export async function runSweep(): Promise<SweepResult> {
     );
   for (const b of unused) {
     const from = b.status as 'CONFIRMED' | 'ACCESS_READY';
-    if (await tryTransition(b.id, from, 'EXPIRED', 'BOOKING_WINDOW_ENDED_UNUSED')) result.expiredUnused++;
+    if (await tryTransition(b.id, from, 'EXPIRED', 'BOOKING_WINDOW_ENDED_UNUSED'))
+      result.expiredUnused++;
   }
 
   // 3. Unlock commands that never led to a door opening.
@@ -103,14 +108,24 @@ export async function runSweep(): Promise<SweepResult> {
       const upd = await tx
         .update(deviceCommands)
         .set({ status: 'FAILED', resultDetail: 'DOOR_LEFT_OPEN' })
-        .where(and(eq(deviceCommands.id, c.id), inArray(deviceCommands.status, ['DELIVERED', 'ACKNOWLEDGED'])))
+        .where(
+          and(
+            eq(deviceCommands.id, c.id),
+            inArray(deviceCommands.status, ['DELIVERED', 'ACKNOWLEDGED']),
+          ),
+        )
         .returning({ id: deviceCommands.id });
       if (!upd.length) return;
       result.doorLeftOpen++;
       await tx
         .update(compartments)
         .set({ operationalStatus: 'NEEDS_INSPECTION' })
-        .where(and(eq(compartments.id, c.compartmentId), eq(compartments.operationalStatus, 'IN_SERVICE')));
+        .where(
+          and(
+            eq(compartments.id, c.compartmentId),
+            eq(compartments.operationalStatus, 'IN_SERVICE'),
+          ),
+        );
       if (c.bookingId) {
         await recordBookingEvent(tx, c.bookingId, 'DOOR_LEFT_OPEN', SYSTEM, { commandId: c.id });
       }

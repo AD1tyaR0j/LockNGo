@@ -4,7 +4,10 @@ import { apiBase, CSRF_HEADER, SESSION_COOKIE, STAFF_PERMISSIONS } from '@/lib/s
 
 export async function POST(req: NextRequest) {
   if (req.headers.get(CSRF_HEADER) !== '1') {
-    return NextResponse.json({ error: { code: 'CSRF', message: 'Missing header' } }, { status: 403 });
+    return NextResponse.json(
+      { error: { code: 'CSRF', message: 'Missing header' } },
+      { status: 403 },
+    );
   }
   const body = await req.json().catch(() => null);
   const res = await fetch(`${apiBase()}/api/v1/auth/login`, {
@@ -40,7 +43,10 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   if (req.headers.get(CSRF_HEADER) !== '1') {
-    return NextResponse.json({ error: { code: 'CSRF', message: 'Missing header' } }, { status: 403 });
+    return NextResponse.json(
+      { error: { code: 'CSRF', message: 'Missing header' } },
+      { status: 403 },
+    );
   }
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;

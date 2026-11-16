@@ -6,7 +6,10 @@ import { syncRbac } from '../modules/rbac/sync.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 /** Works from src/db (tsx) and from dist (bundled). */
-export const MIGRATIONS_DIR = path.resolve(here, here.endsWith('dist') ? '../drizzle' : '../../drizzle');
+export const MIGRATIONS_DIR = path.resolve(
+  here,
+  here.endsWith('dist') ? '../drizzle' : '../../drizzle',
+);
 
 export async function runMigrations(): Promise<void> {
   const db = getDb();

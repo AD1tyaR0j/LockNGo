@@ -21,7 +21,8 @@ export function priceStorage(rule: StoragePricingRule, durationHours: number): S
     throw new RangeError('durationHours must be a positive integer');
   }
   for (const v of [rule.baseAmountMinor, rule.perHourAmountMinor, rule.taxBps]) {
-    if (!Number.isInteger(v) || v < 0) throw new RangeError('pricing values must be non-negative integers');
+    if (!Number.isInteger(v) || v < 0)
+      throw new RangeError('pricing values must be non-negative integers');
   }
   const base = rule.baseAmountMinor;
   const hourly = rule.perHourAmountMinor * durationHours;

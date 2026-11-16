@@ -38,13 +38,24 @@ const TONE: Record<string, string> = {
 };
 
 export function StatusBadge({ status }: { status: string }) {
-  return <span className={`badge ${TONE[status] ?? 'b-neutral'}`}>{status.replaceAll('_', ' ')}</span>;
+  return (
+    <span className={`badge ${TONE[status] ?? 'b-neutral'}`}>{status.replaceAll('_', ' ')}</span>
+  );
 }
 
-export function SimBadge({ simulated, label = 'SIMULATED' }: { simulated: boolean; label?: string }) {
+export function SimBadge({
+  simulated,
+  label = 'SIMULATED',
+}: {
+  simulated: boolean;
+  label?: string;
+}) {
   if (!simulated) return null;
   return (
-    <span className="badge b-sim" title="No physical hardware: events come from the device simulator">
+    <span
+      className="badge b-sim"
+      title="No physical hardware: events come from the device simulator"
+    >
       {label}
     </span>
   );
@@ -69,7 +80,9 @@ export function DataState({
     return (
       <div className="alert error" role="alert">
         {error.message}
-        {error.requestId ? <span className="mono"> (request {error.requestId.slice(0, 8)})</span> : null}{' '}
+        {error.requestId ? (
+          <span className="mono"> (request {error.requestId.slice(0, 8)})</span>
+        ) : null}{' '}
         {onRetry ? (
           <button className="small" onClick={onRetry}>
             Retry

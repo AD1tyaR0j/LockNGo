@@ -36,7 +36,13 @@ export interface PaymentProvider {
   readonly isMock: boolean;
   createOrder(input: CreateOrderInput): Promise<ProviderOrder>;
   /** Verifies the signature over the raw body and parses the event. Throws on bad signature. */
-  parseVerifiedWebhook(rawBody: Buffer, headers: Record<string, string | undefined>): VerifiedPaymentEvent;
+  parseVerifiedWebhook(
+    rawBody: Buffer,
+    headers: Record<string, string | undefined>,
+  ): VerifiedPaymentEvent;
   /** Placeholder for Phase 1 hardening; mock records intent only. */
-  initiateRefund(providerPaymentId: string, amountMinor: number): Promise<{ providerRefundId: string }>;
+  initiateRefund(
+    providerPaymentId: string,
+    amountMinor: number,
+  ): Promise<{ providerRefundId: string }>;
 }

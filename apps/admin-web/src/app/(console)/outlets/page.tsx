@@ -45,24 +45,59 @@ function CreateOutletForm({ onCreated }: { onCreated: () => void }) {
   return (
     <form className="card stack" onSubmit={submit}>
       <h2>New outlet</h2>
-      <p className="muted">New outlets start as DRAFT and are not visible to customers until activated.</p>
+      <p className="muted">
+        New outlets start as DRAFT and are not visible to customers until activated.
+      </p>
       <div className="form-grid">
-        <label>Name<input name="name" required maxLength={160} /></label>
-        <label>Address<input name="address" required maxLength={500} /></label>
-        <label>City<input name="city" required /></label>
-        <label>State<input name="state" required /></label>
-        <label>PIN code<input name="postalCode" required pattern="\d{6}" inputMode="numeric" /></label>
-        <label>Latitude<input name="latitude" required type="number" step="any" min={-90} max={90} /></label>
-        <label>Longitude<input name="longitude" required type="number" step="any" min={-180} max={180} /></label>
-        <label>Opens (IST)<input name="open" type="time" defaultValue="08:00" /></label>
-        <label>Closes (IST)<input name="close" type="time" defaultValue="22:00" /></label>
+        <label>
+          Name
+          <input name="name" required maxLength={160} />
+        </label>
+        <label>
+          Address
+          <input name="address" required maxLength={500} />
+        </label>
+        <label>
+          City
+          <input name="city" required />
+        </label>
+        <label>
+          State
+          <input name="state" required />
+        </label>
+        <label>
+          PIN code
+          <input name="postalCode" required pattern="\d{6}" inputMode="numeric" />
+        </label>
+        <label>
+          Latitude
+          <input name="latitude" required type="number" step="any" min={-90} max={90} />
+        </label>
+        <label>
+          Longitude
+          <input name="longitude" required type="number" step="any" min={-180} max={180} />
+        </label>
+        <label>
+          Opens (IST)
+          <input name="open" type="time" defaultValue="08:00" />
+        </label>
+        <label>
+          Closes (IST)
+          <input name="close" type="time" defaultValue="22:00" />
+        </label>
         <label style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <input name="is24x7" type="checkbox" style={{ minHeight: 0 }} /> Open 24×7
         </label>
       </div>
-      {error ? <div className="alert error" role="alert">{error}</div> : null}
+      {error ? (
+        <div className="alert error" role="alert">
+          {error}
+        </div>
+      ) : null}
       <div>
-        <button className="primary" disabled={busy}>{busy ? 'Creating…' : 'Create outlet'}</button>
+        <button className="primary" disabled={busy}>
+          {busy ? 'Creating…' : 'Create outlet'}
+        </button>
       </div>
     </form>
   );
@@ -78,7 +113,9 @@ export default function OutletsPage() {
           <h1>Outlets</h1>
           <p className="muted">All outlets, including drafts and suspended sites.</p>
         </div>
-        <button onClick={() => setShowForm((s) => !s)}>{showForm ? 'Close form' : 'New outlet'}</button>
+        <button onClick={() => setShowForm((s) => !s)}>
+          {showForm ? 'Close form' : 'New outlet'}
+        </button>
       </div>
       {showForm ? (
         <CreateOutletForm
@@ -89,7 +126,13 @@ export default function OutletsPage() {
         />
       ) : null}
       <div className="card">
-        <DataState loading={loading} error={error} empty={!data?.items.length} emptyText="No outlets yet." onRetry={reload}>
+        <DataState
+          loading={loading}
+          error={error}
+          empty={!data?.items.length}
+          emptyText="No outlets yet."
+          onRetry={reload}
+        >
           <div className="table-wrap">
             <table>
               <thead>
@@ -104,12 +147,21 @@ export default function OutletsPage() {
                 {data?.items.map((o) => (
                   <tr key={o.id}>
                     <td>
-                      <Link href={`/outlets/${o.id}`}>{o.name}</Link> <SimBadge simulated={o.hasSimulatedDevices} />
+                      <Link href={`/outlets/${o.id}`}>{o.name}</Link>{' '}
+                      <SimBadge simulated={o.hasSimulatedDevices} />
                       <div className="muted">{o.address}</div>
                     </td>
-                    <td>{o.city}, {o.state}</td>
-                    <td>{o.operatingHours.is24x7 ? '24×7' : `${o.operatingHours.open}–${o.operatingHours.close}`}</td>
-                    <td><StatusBadge status={o.status} /></td>
+                    <td>
+                      {o.city}, {o.state}
+                    </td>
+                    <td>
+                      {o.operatingHours.is24x7
+                        ? '24×7'
+                        : `${o.operatingHours.open}–${o.operatingHours.close}`}
+                    </td>
+                    <td>
+                      <StatusBadge status={o.status} />
+                    </td>
                   </tr>
                 ))}
               </tbody>

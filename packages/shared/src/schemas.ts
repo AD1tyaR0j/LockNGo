@@ -1,10 +1,5 @@
 import { z } from 'zod';
-import {
-  ACCESS_PURPOSES,
-  COMPARTMENT_SIZES,
-  DEVICE_EVENT_TYPES,
-  OUTLET_STATUSES,
-} from './enums';
+import { ACCESS_PURPOSES, COMPARTMENT_SIZES, DEVICE_EVENT_TYPES, OUTLET_STATUSES } from './enums';
 
 /** Hard platform limits for MVP. Commercial values (prices) live in admin-configured pricing rules. */
 export const BOOKING_LIMITS = {
@@ -62,7 +57,10 @@ export const createLockerBankSchema = z.object({
   compartments: z
     .array(
       z.object({
-        code: z.string().trim().regex(/^[A-Z0-9-]{1,12}$/),
+        code: z
+          .string()
+          .trim()
+          .regex(/^[A-Z0-9-]{1,12}$/),
         size: z.enum(COMPARTMENT_SIZES),
         maxWeightGrams: z.number().int().positive().max(100_000),
       }),
@@ -74,7 +72,10 @@ export type CreateLockerBankInput = z.infer<typeof createLockerBankSchema>;
 
 export const registerDeviceSchema = z.object({
   lockerBankId: z.string().uuid(),
-  deviceIdentifier: z.string().trim().regex(/^[A-Za-z0-9._-]{3,64}$/),
+  deviceIdentifier: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z0-9._-]{3,64}$/),
   hardwareModel: z.string().trim().min(1).max(60),
   firmwareVersion: z.string().trim().min(1).max(40),
   isSimulated: z.boolean(),

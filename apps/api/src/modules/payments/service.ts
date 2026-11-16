@@ -96,7 +96,11 @@ export async function processPaymentWebhook(
       });
       await tx
         .update(payments)
-        .set({ status: 'REFUND_REQUIRED', providerPaymentId: event.providerPaymentId, updatedAt: now })
+        .set({
+          status: 'REFUND_REQUIRED',
+          providerPaymentId: event.providerPaymentId,
+          updatedAt: now,
+        })
         .where(eq(payments.id, payment.id));
       return 'AMOUNT_MISMATCH';
     }
@@ -119,7 +123,11 @@ export async function processPaymentWebhook(
       }
       await tx
         .update(payments)
-        .set({ status: 'REFUND_REQUIRED', providerPaymentId: event.providerPaymentId, updatedAt: now })
+        .set({
+          status: 'REFUND_REQUIRED',
+          providerPaymentId: event.providerPaymentId,
+          updatedAt: now,
+        })
         .where(eq(payments.id, payment.id));
       await audit(tx, {
         actor: SYSTEM,
@@ -151,7 +159,11 @@ export async function processPaymentWebhook(
       resourceType: 'payment',
       resourceId: payment.id,
       requestId,
-      metadata: { bookingId: booking.id, amountMinor: payment.amountMinor, isMock: provider.isMock },
+      metadata: {
+        bookingId: booking.id,
+        amountMinor: payment.amountMinor,
+        isMock: provider.isMock,
+      },
     });
     return 'BOOKING_CONFIRMED';
   });

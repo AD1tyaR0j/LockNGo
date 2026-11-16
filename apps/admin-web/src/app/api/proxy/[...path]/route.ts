@@ -12,14 +12,23 @@ async function forward(req: NextRequest, ctx: { params: Promise<{ path: string[]
   const { path } = await ctx.params;
   const joined = path.join('/');
   if (!ALLOWED.test(joined)) {
-    return NextResponse.json({ error: { code: 'NOT_FOUND', message: 'Not found' } }, { status: 404 });
+    return NextResponse.json(
+      { error: { code: 'NOT_FOUND', message: 'Not found' } },
+      { status: 404 },
+    );
   }
   if (req.method !== 'GET' && req.headers.get(CSRF_HEADER) !== '1') {
-    return NextResponse.json({ error: { code: 'CSRF', message: 'Missing header' } }, { status: 403 });
+    return NextResponse.json(
+      { error: { code: 'CSRF', message: 'Missing header' } },
+      { status: 403 },
+    );
   }
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) {
-    return NextResponse.json({ error: { code: 'UNAUTHENTICATED', message: 'Sign in' } }, { status: 401 });
+    return NextResponse.json(
+      { error: { code: 'UNAUTHENTICATED', message: 'Sign in' } },
+      { status: 401 },
+    );
   }
   const target = `${apiBase()}/api/v1/${joined}${req.nextUrl.search}`;
   const res = await fetch(target, {
@@ -27,7 +36,9 @@ async function forward(req: NextRequest, ctx: { params: Promise<{ path: string[]
     headers: {
       authorization: `Bearer ${token}`,
       'content-type': 'application/json',
-      ...(req.headers.get('x-request-id') ? { 'x-request-id': req.headers.get('x-request-id')! } : {}),
+      ...(req.headers.get('x-request-id')
+        ? { 'x-request-id': req.headers.get('x-request-id')! }
+        : {}),
     },
     body: req.method === 'GET' || req.method === 'HEAD' ? undefined : await req.text(),
     cache: 'no-store',

@@ -10,7 +10,13 @@ interface Overview {
   devices: { byStatus: Record<string, number>; simulated: number; physical: number };
   compartments: Record<string, number>;
   bookings: Record<string, number>;
-  recentAlerts: { id: string; action: string; resourceType: string; resourceId: string | null; createdAt: string }[];
+  recentAlerts: {
+    id: string;
+    action: string;
+    resourceType: string;
+    resourceId: string | null;
+    createdAt: string;
+  }[];
 }
 
 const sum = (r: Record<string, number>) => Object.values(r).reduce((a, b) => a + b, 0);
@@ -45,28 +51,44 @@ export default function OverviewPage() {
           <>
             {data.devices.simulated > 0 ? (
               <div className="alert warn">
-                {data.devices.simulated} of {data.devices.simulated + data.devices.physical} devices are
-                SIMULATED. Their door and lock events come from the device simulator, not hardware.
+                {data.devices.simulated} of {data.devices.simulated + data.devices.physical} devices
+                are SIMULATED. Their door and lock events come from the device simulator, not
+                hardware.
               </div>
             ) : null}
             <div className="grid kpis">
-              <Kpi label="Outlets" value={sum(data.outlets)} sub={`${data.outlets.ACTIVE ?? 0} active`} />
+              <Kpi
+                label="Outlets"
+                value={sum(data.outlets)}
+                sub={`${data.outlets.ACTIVE ?? 0} active`}
+              />
               <Kpi
                 label="Devices online"
                 value={`${data.devices.byStatus.ONLINE ?? 0} / ${sum(data.devices.byStatus)}`}
                 sub={`${data.devices.byStatus.OFFLINE ?? 0} offline · ${data.devices.byStatus.FAULT ?? 0} fault`}
               />
-              <Kpi label="Compartments" value={sum(data.compartments)} sub={`${data.compartments.AVAILABLE ?? 0} available now`} />
+              <Kpi
+                label="Compartments"
+                value={sum(data.compartments)}
+                sub={`${data.compartments.AVAILABLE ?? 0} available now`}
+              />
               <Kpi label="Reserved" value={data.compartments.RESERVED ?? 0} />
               <Kpi label="Occupied" value={data.compartments.OCCUPIED ?? 0} />
               <Kpi
                 label="Out of service"
-                value={(data.compartments.OUT_OF_SERVICE ?? 0) + (data.compartments.NEEDS_INSPECTION ?? 0)}
+                value={
+                  (data.compartments.OUT_OF_SERVICE ?? 0) +
+                  (data.compartments.NEEDS_INSPECTION ?? 0)
+                }
                 sub={`${data.compartments.NEEDS_INSPECTION ?? 0} need inspection`}
               />
               <Kpi
                 label="Active bookings"
-                value={(data.bookings.ACTIVE ?? 0) + (data.bookings.ACCESS_READY ?? 0) + (data.bookings.CONFIRMED ?? 0)}
+                value={
+                  (data.bookings.ACTIVE ?? 0) +
+                  (data.bookings.ACCESS_READY ?? 0) +
+                  (data.bookings.CONFIRMED ?? 0)
+                }
                 sub={`${data.bookings.PENDING_PAYMENT ?? 0} awaiting payment`}
               />
             </div>

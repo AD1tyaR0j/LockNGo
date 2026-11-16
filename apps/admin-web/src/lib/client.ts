@@ -14,7 +14,10 @@ export class ApiError extends Error {
 }
 
 /** Browser → this app's BFF. Never talks to the backend directly; never sees the token. */
-export async function adminFetch<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+export async function adminFetch<T>(
+  path: string,
+  init: { method?: string; body?: unknown } = {},
+): Promise<T> {
   const res = await fetch(`/api/proxy/${path.replace(/^\//, '')}`, {
     method: init.method ?? 'GET',
     headers: { 'content-type': 'application/json', 'x-admin-web': '1' },
@@ -29,9 +32,15 @@ export async function adminFetch<T>(path: string, init: { method?: string; body?
   if (!res.ok) {
     const e = data?.error;
     const detail = Array.isArray(e?.details)
-      ? ': ' + e.details.map((d: { path: string; message: string }) => `${d.path} ${d.message}`).join('; ')
+      ? ': ' +
+        e.details.map((d: { path: string; message: string }) => `${d.path} ${d.message}`).join('; ')
       : '';
-    throw new ApiError(res.status, e?.code ?? 'ERROR', (e?.message ?? 'Request failed') + detail, e?.requestId);
+    throw new ApiError(
+      res.status,
+      e?.code ?? 'ERROR',
+      (e?.message ?? 'Request failed') + detail,
+      e?.requestId,
+    );
   }
   return data as T;
 }
@@ -47,7 +56,11 @@ export function useAdminData<T>(path: string | null) {
       setData(await adminFetch<T>(path));
       setError(null);
     } catch (e) {
-      setError(e instanceof ApiError ? e : new ApiError(0, 'NETWORK', 'Network error — check your connection'));
+      setError(
+        e instanceof ApiError
+          ? e
+          : new ApiError(0, 'NETWORK', 'Network error — check your connection'),
+      );
     } finally {
       setLoading(false);
     }

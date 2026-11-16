@@ -52,7 +52,12 @@ function loadDevices(): { apiUrl: string; devices: SimDevice[] } {
     return {
       apiUrl: process.env.SIM_API_URL ?? 'http://localhost:4000',
       devices: [
-        { deviceIdentifier: process.env.SIM_DEVICE_ID, outlet: '(env)', token: process.env.SIM_DEVICE_TOKEN, compartments: [] },
+        {
+          deviceIdentifier: process.env.SIM_DEVICE_ID,
+          outlet: '(env)',
+          token: process.env.SIM_DEVICE_TOKEN,
+          compartments: [],
+        },
       ],
     };
   }
@@ -61,7 +66,9 @@ function loadDevices(): { apiUrl: string; devices: SimDevice[] } {
     return { apiUrl: process.env.SIM_API_URL ?? f.apiUrl, devices: f.devices };
   } catch {
     console.error(`No simulated devices found. Run "pnpm db:seed" first (writes ${SIM_FILE}),`);
-    console.error('or set SIM_DEVICE_ID and SIM_DEVICE_TOKEN for a device registered in the admin UI.');
+    console.error(
+      'or set SIM_DEVICE_ID and SIM_DEVICE_TOKEN for a device registered in the admin UI.',
+    );
     process.exit(1);
   }
 }
@@ -81,7 +88,9 @@ class SimulatedLocker {
   ) {}
 
   private log(msg: string) {
-    console.log(`[SIM ${this.device.deviceIdentifier}] ${new Date().toISOString().slice(11, 19)} ${msg}`);
+    console.log(
+      `[SIM ${this.device.deviceIdentifier}] ${new Date().toISOString().slice(11, 19)} ${msg}`,
+    );
   }
 
   private async call(method: string, p: string, body?: unknown) {
@@ -98,7 +107,8 @@ class SimulatedLocker {
 
   async heartbeat() {
     if (this.scenario === 'offline') return;
-    if (this.scenario === 'flaky' && Math.random() < 0.5) return this.log('heartbeat dropped (flaky)');
+    if (this.scenario === 'flaky' && Math.random() < 0.5)
+      return this.log('heartbeat dropped (flaky)');
     await this.call('POST', '/heartbeat', {
       firmwareVersion: 'sim-0.1.0',
       powerState: 'MAINS',
@@ -107,10 +117,24 @@ class SimulatedLocker {
     });
   }
 
-  async event(type: DeviceEventType, compartmentCode?: string, commandId?: string, sequence = ++this.sequence) {
-    const body = { eventId: randomUUID(), type, compartmentCode, commandId, occurredAt: new Date().toISOString(), sequence };
+  async event(
+    type: DeviceEventType,
+    compartmentCode?: string,
+    commandId?: string,
+    sequence = ++this.sequence,
+  ) {
+    const body = {
+      eventId: randomUUID(),
+      type,
+      compartmentCode,
+      commandId,
+      occurredAt: new Date().toISOString(),
+      sequence,
+    };
     const r = await this.call('POST', '/events', body);
-    this.log(`event ${type}${compartmentCode ? ` ${compartmentCode}` : ''} -> ${JSON.stringify(r)}`);
+    this.log(
+      `event ${type}${compartmentCode ? ` ${compartmentCode}` : ''} -> ${JSON.stringify(r)}`,
+    );
     if (this.scenario === 'duplicate-events') {
       const dup = await this.call('POST', '/events', body);
       this.log(`  duplicate re-sent -> ${JSON.stringify(dup)}`);
@@ -118,7 +142,9 @@ class SimulatedLocker {
   }
 
   async handle(cmd: Command) {
-    this.log(`command ${cmd.type} ${cmd.compartmentCode} (${cmd.commandId.slice(0, 8)}) expires ${cmd.expiresAt}`);
+    this.log(
+      `command ${cmd.type} ${cmd.compartmentCode} (${cmd.commandId.slice(0, 8)}) expires ${cmd.expiresAt}`,
+    );
     if (this.scenario === 'no-ack') return this.log('  ignoring command (no-ack scenario)');
     if (this.scenario === 'flaky') await sleep(3000);
     const result = this.scenario === 'ack-fail' ? 'FAILED' : 'OK';
@@ -139,13 +165,16 @@ class SimulatedLocker {
       return;
     }
     await this.event('DOOR_OPENED', cmd.compartmentCode, cmd.commandId);
-    if (this.scenario === 'door-stuck-open') return this.log('  door left open (door-stuck-open scenario)');
+    if (this.scenario === 'door-stuck-open')
+      return this.log('  door left open (door-stuck-open scenario)');
     await sleep(this.doorHoldMs);
     await this.event('DOOR_CLOSED', cmd.compartmentCode, cmd.commandId);
   }
 
   async run(heartbeatMs: number, pollMs: number) {
-    this.log(`SIMULATED device for "${this.device.outlet}" — scenario: ${this.scenario} (${SCENARIOS[this.scenario]})`);
+    this.log(
+      `SIMULATED device for "${this.device.outlet}" — scenario: ${this.scenario} (${SCENARIOS[this.scenario]})`,
+    );
     let lastBeat = 0;
     for (;;) {
       try {
@@ -170,7 +199,9 @@ class SimulatedLocker {
 
   async enterPin(compartmentCode: string, pin: string) {
     const r = await this.call('POST', '/access/verify-pin', { compartmentCode, pin });
-    this.log(`keypad PIN accepted -> ${JSON.stringify(r)} (run the simulator to execute the unlock)`);
+    this.log(
+      `keypad PIN accepted -> ${JSON.stringify(r)} (run the simulator to execute the unlock)`,
+    );
   }
 }
 
@@ -200,7 +231,8 @@ async function main() {
   if (!(scenario in SCENARIOS)) throw new Error(`Unknown scenario ${scenario}`);
   const { apiUrl, devices } = loadDevices();
   if (cmd === 'list') {
-    for (const d of devices) console.log(`${d.deviceIdentifier.padEnd(18)} ${d.outlet}  [${d.compartments.join(' ')}]`);
+    for (const d of devices)
+      console.log(`${d.deviceIdentifier.padEnd(18)} ${d.outlet}  [${d.compartments.join(' ')}]`);
     return;
   }
   const pick = (id?: string) => {
@@ -210,18 +242,29 @@ async function main() {
   };
   const hold = Number(values['door-hold-ms']);
   if (cmd === 'pin') {
-    if (!values.compartment || !values.code) throw new Error('--compartment and --code are required');
-    return new SimulatedLocker(apiUrl, pick(values.device), 'normal', hold).enterPin(values.compartment, values.code);
+    if (!values.compartment || !values.code)
+      throw new Error('--compartment and --code are required');
+    return new SimulatedLocker(apiUrl, pick(values.device), 'normal', hold).enterPin(
+      values.compartment,
+      values.code,
+    );
   }
   if (cmd === 'event') {
     const t = values.type as DeviceEventType;
-    if (!DEVICE_EVENT_TYPES.includes(t)) throw new Error(`--type must be one of ${DEVICE_EVENT_TYPES.join(', ')}`);
-    return new SimulatedLocker(apiUrl, pick(values.device), 'normal', hold).event(t, values.compartment);
+    if (!DEVICE_EVENT_TYPES.includes(t))
+      throw new Error(`--type must be one of ${DEVICE_EVENT_TYPES.join(', ')}`);
+    return new SimulatedLocker(apiUrl, pick(values.device), 'normal', hold).event(
+      t,
+      values.compartment,
+    );
   }
   const targets = values.all ? devices : [pick(values.device)];
   await Promise.all(
     targets.map((d) =>
-      new SimulatedLocker(apiUrl, d, scenario, hold).run(Number(values['heartbeat-ms']), Number(values['poll-ms'])),
+      new SimulatedLocker(apiUrl, d, scenario, hold).run(
+        Number(values['heartbeat-ms']),
+        Number(values['poll-ms']),
+      ),
     ),
   );
 }

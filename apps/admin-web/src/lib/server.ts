@@ -14,7 +14,11 @@ export function apiBase(): string {
 }
 
 /** Any of these grants access to the admin console. Real authorization happens in the API. */
-export const STAFF_PERMISSIONS = ['admin:dashboard:read', 'admin:outlets:read', 'admin:bookings:read'];
+export const STAFF_PERMISSIONS = [
+  'admin:dashboard:read',
+  'admin:outlets:read',
+  'admin:bookings:read',
+];
 
 /** Custom header that cross-site forms cannot send: CSRF protection alongside SameSite=Strict. */
 export const CSRF_HEADER = 'x-admin-web';

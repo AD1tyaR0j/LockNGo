@@ -19,7 +19,8 @@ export async function registerCustomer() {
   const res = await api()
     .post('/api/v1/auth/register')
     .send({ name: 'Test Customer', email, password: PASSWORD });
-  if (res.status !== 201) throw new Error(`register failed: ${res.status} ${JSON.stringify(res.body)}`);
+  if (res.status !== 201)
+    throw new Error(`register failed: ${res.status} ${JSON.stringify(res.body)}`);
   return { token: res.body.token as string, userId: res.body.user.id as string, email };
 }
 
@@ -106,15 +107,12 @@ export async function createOutlet(
 }
 
 export async function heartbeat(deviceToken: string) {
-  return api()
-    .post('/api/v1/devices/heartbeat')
-    .set(auth(deviceToken))
-    .send({
-      firmwareVersion: 'sim-test',
-      powerState: 'MAINS',
-      connectivity: 'WIFI',
-      sentAt: new Date().toISOString(),
-    });
+  return api().post('/api/v1/devices/heartbeat').set(auth(deviceToken)).send({
+    firmwareVersion: 'sim-test',
+    powerState: 'MAINS',
+    connectivity: 'WIFI',
+    sentAt: new Date().toISOString(),
+  });
 }
 
 export async function quote(
@@ -125,7 +123,12 @@ export async function quote(
   return api()
     .post('/api/v1/storage/quotes')
     .set(auth(token))
-    .send({ outletId, size: opts.size ?? 'S', durationHours: opts.durationHours ?? 2, startsAt: opts.startsAt });
+    .send({
+      outletId,
+      size: opts.size ?? 'S',
+      durationHours: opts.durationHours ?? 2,
+      startsAt: opts.startsAt,
+    });
 }
 
 export async function book(token: string, quoteId: string, idempotencyKey = `idem-${uniq()}`) {
@@ -136,7 +139,11 @@ export async function book(token: string, quoteId: string, idempotencyKey = `ide
     .send({ quoteId });
 }
 
-export async function pay(token: string, paymentId: string, outcome: 'success' | 'failure' = 'success') {
+export async function pay(
+  token: string,
+  paymentId: string,
+  outcome: 'success' | 'failure' = 'success',
+) {
   return api()
     .post(`/api/v1/payments/mock/${paymentId}/complete`)
     .set(auth(token))
@@ -144,7 +151,11 @@ export async function pay(token: string, paymentId: string, outcome: 'success' |
 }
 
 /** Quote → book → mock-pay. Returns the booking id. */
-export async function paidBooking(token: string, outletId: string, opts: Parameters<typeof quote>[2] = {}) {
+export async function paidBooking(
+  token: string,
+  outletId: string,
+  opts: Parameters<typeof quote>[2] = {},
+) {
   const q = await quote(token, outletId, opts);
   if (q.status !== 201) throw new Error(`quote: ${JSON.stringify(q.body)}`);
   const b = await book(token, q.body.id);
@@ -157,7 +168,13 @@ export async function paidBooking(token: string, outletId: string, opts: Paramet
 let seq = 0;
 export function deviceEvent(
   deviceToken: string,
-  body: { type: string; compartmentCode?: string; commandId?: string; sequence?: number; eventId?: string },
+  body: {
+    type: string;
+    compartmentCode?: string;
+    commandId?: string;
+    sequence?: number;
+    eventId?: string;
+  },
 ) {
   return api()
     .post('/api/v1/devices/events')
@@ -182,7 +199,15 @@ export async function deviceCompletesUnlock(deviceToken: string) {
     .set(auth(deviceToken))
     .send({ result: 'OK', nonce: cmd.nonce });
   if (ack.status !== 200) throw new Error(`ack: ${JSON.stringify(ack.body)}`);
-  await deviceEvent(deviceToken, { type: 'DOOR_OPENED', compartmentCode: cmd.compartmentCode, commandId: cmd.commandId });
-  await deviceEvent(deviceToken, { type: 'DOOR_CLOSED', compartmentCode: cmd.compartmentCode, commandId: cmd.commandId });
+  await deviceEvent(deviceToken, {
+    type: 'DOOR_OPENED',
+    compartmentCode: cmd.compartmentCode,
+    commandId: cmd.commandId,
+  });
+  await deviceEvent(deviceToken, {
+    type: 'DOOR_CLOSED',
+    compartmentCode: cmd.compartmentCode,
+    commandId: cmd.commandId,
+  });
   return cmd;
 }

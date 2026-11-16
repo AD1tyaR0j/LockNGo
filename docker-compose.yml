@@ -1,0 +1,15 @@
+# Local development services only. Not a production deployment.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: smartlocker
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infrastructure/database/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+# Phase 2 will add: mosquitto (MQTT over TLS) and redis (job queue).
+volumes:
+  pgdata:

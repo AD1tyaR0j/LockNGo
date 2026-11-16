@@ -37,7 +37,10 @@ const envSchema = z
       });
     }
     if (env.NODE_ENV === 'production' && env.PAYMENT_PROVIDER === 'mock') {
-      ctx.addIssue({ code: 'custom', message: 'The mock payment provider cannot run in production' });
+      ctx.addIssue({
+        code: 'custom',
+        message: 'The mock payment provider cannot run in production',
+      });
     }
     if (env.NODE_ENV === 'production' && env.ENABLE_DEV_TOOLS) {
       ctx.addIssue({ code: 'custom', message: 'ENABLE_DEV_TOOLS must be false in production' });

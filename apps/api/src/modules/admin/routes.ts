@@ -161,7 +161,11 @@ adminRouter.get('/outlets/:outletId', requirePermission('admin:outlets:read'), a
   const [o] = await db.select().from(outlets).where(eq(outlets.id, id));
   if (!o) throw notFound('Outlet');
   const now = clock.now();
-  const banks = await db.select().from(lockerBanks).where(eq(lockerBanks.outletId, id)).orderBy(lockerBanks.label);
+  const banks = await db
+    .select()
+    .from(lockerBanks)
+    .where(eq(lockerBanks.outletId, id))
+    .orderBy(lockerBanks.label);
   const bankIds = banks.map((b) => b.id);
   const devs = bankIds.length
     ? await db.select().from(devices).where(inArray(devices.lockerBankId, bankIds))
@@ -180,7 +184,10 @@ adminRouter.get('/outlets/:outletId', requirePermission('admin:outlets:read'), a
         SELECT c.id, c.locker_bank_id, c.code, c.size, c.max_weight_grams, c.operational_status,
                c.door_state, ${displayStatusSql(now)} AS display_status
         FROM compartments c
-        WHERE c.locker_bank_id IN (${sql.join(bankIds.map((b) => sql`${b}::uuid`), sql`, `)})
+        WHERE c.locker_bank_id IN (${sql.join(
+          bankIds.map((b) => sql`${b}::uuid`),
+          sql`, `,
+        )})
         ORDER BY c.size, length(c.code), c.code`)
     : { rows: [] };
   const lockerBanksDto: AdminLockerBank[] = banks.map((b) => {
@@ -206,26 +213,34 @@ adminRouter.get('/outlets/:outletId', requirePermission('admin:outlets:read'), a
   res.json({ outlet: await outletDto(o), lockerBanks: lockerBanksDto });
 });
 
-adminRouter.patch('/outlets/:outletId', requirePermission('admin:outlets:write'), async (req, res) => {
-  const user = requireUser(req);
-  const id = uuidParam(req.params.outletId, 'Outlet');
-  const input = updateOutletSchema.parse(req.body);
-  const o = await getDb().transaction(async (tx) => {
-    const [before] = await tx.select().from(outlets).where(eq(outlets.id, id)).for('update');
-    if (!before) throw notFound('Outlet');
-    const [o] = await tx.update(outlets).set(input).where(eq(outlets.id, id)).returning();
-    await audit(tx, {
-      actor: { type: 'USER', id: user.id },
-      action: 'outlet.updated',
-      resourceType: 'outlet',
-      resourceId: id,
-      requestId: req.requestId,
-      metadata: { changedFields: Object.keys(input), statusFrom: before.status, statusTo: o!.status },
+adminRouter.patch(
+  '/outlets/:outletId',
+  requirePermission('admin:outlets:write'),
+  async (req, res) => {
+    const user = requireUser(req);
+    const id = uuidParam(req.params.outletId, 'Outlet');
+    const input = updateOutletSchema.parse(req.body);
+    const o = await getDb().transaction(async (tx) => {
+      const [before] = await tx.select().from(outlets).where(eq(outlets.id, id)).for('update');
+      if (!before) throw notFound('Outlet');
+      const [o] = await tx.update(outlets).set(input).where(eq(outlets.id, id)).returning();
+      await audit(tx, {
+        actor: { type: 'USER', id: user.id },
+        action: 'outlet.updated',
+        resourceType: 'outlet',
+        resourceId: id,
+        requestId: req.requestId,
+        metadata: {
+          changedFields: Object.keys(input),
+          statusFrom: before.status,
+          statusTo: o!.status,
+        },
+      });
+      return o!;
     });
-    return o!;
-  });
-  res.json(await outletDto(o));
-});
+    res.json(await outletDto(o));
+  },
+);
 
 // ------------------------------------------------------------ inventory
 adminRouter.post(
@@ -241,7 +256,10 @@ adminRouter.post(
     }
     try {
       const bank = await getDb().transaction(async (tx) => {
-        const [o] = await tx.select({ id: outlets.id }).from(outlets).where(eq(outlets.id, outletId));
+        const [o] = await tx
+          .select({ id: outlets.id })
+          .from(outlets)
+          .where(eq(outlets.id, outletId));
         if (!o) throw notFound('Outlet');
         const [bank] = await tx
           .insert(lockerBanks)
@@ -269,7 +287,8 @@ adminRouter.post(
       });
       res.status(201).json({ id: bank.id, label: bank.label });
     } catch (err) {
-      if (pgErrorCode(err) === '23505') throw conflict('DUPLICATE_LABEL', 'Locker bank label already used');
+      if (pgErrorCode(err) === '23505')
+        throw conflict('DUPLICATE_LABEL', 'Locker bank label already used');
       throw err;
     }
   },
@@ -293,12 +312,22 @@ adminRouter.post(
       // Bookings affected by taking the compartment out of service need support follow-up.
       // Automatic reallocation/refund policy is an open product decision.
       const affected = await tx
-        .select({ id: storageBookings.id, reference: storageBookings.reference, status: storageBookings.status })
+        .select({
+          id: storageBookings.id,
+          reference: storageBookings.reference,
+          status: storageBookings.status,
+        })
         .from(storageBookings)
         .where(
           and(
             eq(storageBookings.compartmentId, id),
-            inArray(storageBookings.status, ['PENDING_PAYMENT', 'CONFIRMED', 'ACCESS_READY', 'ACTIVE', 'DISPUTED']),
+            inArray(storageBookings.status, [
+              'PENDING_PAYMENT',
+              'CONFIRMED',
+              'ACCESS_READY',
+              'ACTIVE',
+              'DISPUTED',
+            ]),
           ),
         );
       await audit(tx, {
@@ -307,7 +336,12 @@ adminRouter.post(
         resourceType: 'compartment',
         resourceId: id,
         requestId: req.requestId,
-        metadata: { from: c.operationalStatus, to, reason: input.reason, affectedBookings: affected.length },
+        metadata: {
+          from: c.operationalStatus,
+          to,
+          reason: input.reason,
+          affectedBookings: affected.length,
+        },
       });
       return { operationalStatus: to, affectedBookings: affected };
     });
@@ -318,7 +352,12 @@ adminRouter.post(
 // ------------------------------------------------------------ devices
 adminRouter.get('/devices', requirePermission('admin:devices:read'), async (_req, res) => {
   const rows = await getDb()
-    .select({ d: devices, bankLabel: lockerBanks.label, outletName: outlets.name, outletId: outlets.id })
+    .select({
+      d: devices,
+      bankLabel: lockerBanks.label,
+      outletName: outlets.name,
+      outletId: outlets.id,
+    })
     .from(devices)
     .innerJoin(lockerBanks, eq(lockerBanks.id, devices.lockerBankId))
     .innerJoin(outlets, eq(outlets.id, lockerBanks.outletId))
@@ -338,7 +377,10 @@ adminRouter.post('/devices', requirePermission('admin:devices:register'), async 
   const token = newOpaqueToken(32);
   try {
     const d = await getDb().transaction(async (tx) => {
-      const [bank] = await tx.select().from(lockerBanks).where(eq(lockerBanks.id, input.lockerBankId));
+      const [bank] = await tx
+        .select()
+        .from(lockerBanks)
+        .where(eq(lockerBanks.id, input.lockerBankId));
       if (!bank) throw notFound('Locker bank');
       const [d] = await tx
         .insert(devices)
@@ -410,20 +452,24 @@ adminRouter.get('/bookings', requirePermission('admin:bookings:read'), async (re
   });
 });
 
-adminRouter.get('/bookings/:bookingId', requirePermission('admin:bookings:read'), async (req, res) => {
-  const user = requireUser(req);
-  const id = uuidParam(req.params.bookingId, 'Booking');
-  const detail = await getBookingDetail(getDb(), id);
-  // Support access to individual customer records is audited.
-  await audit(getDb(), {
-    actor: { type: 'USER', id: user.id },
-    action: 'booking.viewed_by_staff',
-    resourceType: 'storage_booking',
-    resourceId: id,
-    requestId: req.requestId,
-  });
-  res.json(detail);
-});
+adminRouter.get(
+  '/bookings/:bookingId',
+  requirePermission('admin:bookings:read'),
+  async (req, res) => {
+    const user = requireUser(req);
+    const id = uuidParam(req.params.bookingId, 'Booking');
+    const detail = await getBookingDetail(getDb(), id);
+    // Support access to individual customer records is audited.
+    await audit(getDb(), {
+      actor: { type: 'USER', id: user.id },
+      action: 'booking.viewed_by_staff',
+      resourceType: 'storage_booking',
+      resourceId: id,
+      requestId: req.requestId,
+    });
+    res.json(detail);
+  },
+);
 
 // ------------------------------------------------------------ audit
 adminRouter.get('/audit', requirePermission('admin:audit:read'), async (req, res) => {

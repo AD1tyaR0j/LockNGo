@@ -7,3 +7,4 @@ process.env.PAYMENT_PROVIDER = 'mock';
 process.env.MOCK_PAYMENT_WEBHOOK_SECRET = 'test-webhook-secret-0000';
 process.env.ENABLE_DEV_TOOLS = 'true';
 process.env.LOG_LEVEL = 'silent';
+export {};

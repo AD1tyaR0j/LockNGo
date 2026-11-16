@@ -7,7 +7,12 @@ import { formatInr, formatTime, useAdminData } from '@/lib/client';
 
 export default function BookingDetailPage({ params }: { params: Promise<{ bookingId: string }> }) {
   const { bookingId } = use(params);
-  const { data: b, error, loading, reload } = useAdminData<BookingDetail>(`admin/bookings/${bookingId}`);
+  const {
+    data: b,
+    error,
+    loading,
+    reload,
+  } = useAdminData<BookingDetail>(`admin/bookings/${bookingId}`);
   return (
     <DataState loading={loading} error={error} empty={!b} onRetry={reload}>
       {b ? (
@@ -27,9 +32,18 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
             </div>
           </div>
           <div className="grid kpis">
-            <div className="card kpi"><div className="label">Starts</div><div>{formatTime(b.startsAt)}</div></div>
-            <div className="card kpi"><div className="label">Paid until</div><div>{formatTime(b.expiresAt)}</div></div>
-            <div className="card kpi"><div className="label">Total</div><div>{formatInr(b.total.amountMinor)}</div></div>
+            <div className="card kpi">
+              <div className="label">Starts</div>
+              <div>{formatTime(b.startsAt)}</div>
+            </div>
+            <div className="card kpi">
+              <div className="label">Paid until</div>
+              <div>{formatTime(b.expiresAt)}</div>
+            </div>
+            <div className="card kpi">
+              <div className="label">Total</div>
+              <div>{formatInr(b.total.amountMinor)}</div>
+            </div>
             <div className="card kpi">
               <div className="label">Payment</div>
               <div className="row">
@@ -40,7 +54,8 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
           </div>
           {b.pendingCommand ? (
             <div className="alert warn">
-              Unlock ({b.pendingCommand.purpose}) in progress: {b.pendingCommand.status}, expires {formatTime(b.pendingCommand.expiresAt)}
+              Unlock ({b.pendingCommand.purpose}) in progress: {b.pendingCommand.status}, expires{' '}
+              {formatTime(b.pendingCommand.expiresAt)}
             </div>
           ) : null}
           <div className="card">
@@ -48,9 +63,19 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
             <table>
               <tbody>
                 {b.breakdown.map((l) => (
-                  <tr key={l.label}><td>{l.label}</td><td style={{ textAlign: 'right' }}>{formatInr(l.amountMinor)}</td></tr>
+                  <tr key={l.label}>
+                    <td>{l.label}</td>
+                    <td style={{ textAlign: 'right' }}>{formatInr(l.amountMinor)}</td>
+                  </tr>
                 ))}
-                <tr><td><strong>Total</strong></td><td style={{ textAlign: 'right' }}><strong>{formatInr(b.total.amountMinor)}</strong></td></tr>
+                <tr>
+                  <td>
+                    <strong>Total</strong>
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <strong>{formatInr(b.total.amountMinor)}</strong>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -64,14 +89,16 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                     <span className="badge b-neutral">{e.actorType}</span>
                     <span className="muted">{formatTime(e.createdAt)}</span>
                   </div>
-                  {Object.keys(e.metadata).length ? <div className="mono muted">{JSON.stringify(e.metadata)}</div> : null}
+                  {Object.keys(e.metadata).length ? (
+                    <div className="mono muted">{JSON.stringify(e.metadata)}</div>
+                  ) : null}
                 </li>
               ))}
             </ol>
           </div>
           <p className="muted">
-            Manual unlock is intentionally not available here. Locker access requires the customer&apos;s
-            authenticated request or PIN.
+            Manual unlock is intentionally not available here. Locker access requires the
+            customer&apos;s authenticated request or PIN.
           </p>
         </div>
       ) : null}

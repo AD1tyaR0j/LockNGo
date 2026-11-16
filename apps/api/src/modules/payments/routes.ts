@@ -44,7 +44,9 @@ mockCheckoutRouter.post(
       .select({ p: payments })
       .from(payments)
       .innerJoin(storageBookings, eq(storageBookings.id, payments.bookingId))
-      .where(and(eq(payments.id, String(req.params.paymentId)), eq(storageBookings.customerId, user.id)));
+      .where(
+        and(eq(payments.id, String(req.params.paymentId)), eq(storageBookings.customerId, user.id)),
+      );
     if (!row) throw notFound('Payment');
     const webhook = mock.buildWebhook(
       outcome === 'success'

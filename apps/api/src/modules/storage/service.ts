@@ -143,7 +143,13 @@ export async function createBooking(args: {
       const startsAt = quote.startsAt < now ? now : quote.startsAt;
       const endsAt = quote.endsAt;
 
-      const compartmentId = await lockFreeCompartment(tx, quote.outletId, quote.size, startsAt, endsAt);
+      const compartmentId = await lockFreeCompartment(
+        tx,
+        quote.outletId,
+        quote.size,
+        startsAt,
+        endsAt,
+      );
       if (!compartmentId) {
         throw conflict('NO_AVAILABILITY', 'No compartments of that size are available any more');
       }
@@ -182,7 +188,10 @@ export async function createBooking(args: {
       const winner = await findByIdempotencyKey(db, args.customerId, args.idempotencyKey);
       if (winner) return ensurePaymentOrder(winner, args.requestId);
     }
-    if (pgErrorCode(err) === '23505' && pgConstraint(err) === 'storage_bookings_price_quote_id_unique') {
+    if (
+      pgErrorCode(err) === '23505' &&
+      pgConstraint(err) === 'storage_bookings_price_quote_id_unique'
+    ) {
       throw conflict('QUOTE_USED', 'Quote has already been used');
     }
     throw err;
@@ -200,7 +209,10 @@ async function lockFreeCompartment(
   const tried: string[] = [];
   for (let attempt = 0; attempt < 10; attempt++) {
     const exclude = tried.length
-      ? sql`AND c.id NOT IN (${sql.join(tried.map((id) => sql`${id}::uuid`), sql`, `)})`
+      ? sql`AND c.id NOT IN (${sql.join(
+          tried.map((id) => sql`${id}::uuid`),
+          sql`, `,
+        )})`
       : sql``;
     const candidate = await tx.execute<{ id: string }>(sql`
       SELECT c.id FROM compartments c
@@ -226,7 +238,9 @@ async function findByIdempotencyKey(db: DbOrTx, customerId: string, key: string)
   const [b] = await db
     .select()
     .from(storageBookings)
-    .where(and(eq(storageBookings.customerId, customerId), eq(storageBookings.idempotencyKey, key)));
+    .where(
+      and(eq(storageBookings.customerId, customerId), eq(storageBookings.idempotencyKey, key)),
+    );
   return b;
 }
 
@@ -281,7 +295,11 @@ export function nextAccessPurpose(
   now: Date,
 ): AccessPurpose | null {
   if (b.status === 'ACTIVE') return 'RETRIEVE';
-  if ((b.status === 'CONFIRMED' || b.status === 'ACCESS_READY') && now >= b.startsAt && now < b.expiresAt) {
+  if (
+    (b.status === 'CONFIRMED' || b.status === 'ACCESS_READY') &&
+    now >= b.startsAt &&
+    now < b.expiresAt
+  ) {
     return 'DEPOSIT';
   }
   return null;
@@ -347,7 +365,12 @@ export async function getBookingDetail(db: DbOrTx, bookingId: string): Promise<B
     payment: payment ? paymentSummary(payment) : null,
     nextAccessPurpose: nextAccessPurpose(b, clock.now()),
     pendingCommand: cmd
-      ? { id: cmd.id, purpose: cmd.purpose, status: cmd.status, expiresAt: cmd.expiresAt.toISOString() }
+      ? {
+          id: cmd.id,
+          purpose: cmd.purpose,
+          status: cmd.status,
+          expiresAt: cmd.expiresAt.toISOString(),
+        }
       : null,
     events: events.map((e) => ({
       id: String(e.id),
@@ -483,7 +506,13 @@ export async function issueCredential(
  */
 export async function issueUnlockCommand(
   tx: Tx,
-  args: { booking: BookingRow; purpose: AccessPurpose; actor: Actor; requestId?: string; via: 'APP' | 'PIN' },
+  args: {
+    booking: BookingRow;
+    purpose: AccessPurpose;
+    actor: Actor;
+    requestId?: string;
+    via: 'APP' | 'PIN';
+  },
 ) {
   const { booking, purpose, actor } = args;
   const now = clock.now();
@@ -568,7 +597,12 @@ export async function issueUnlockCommand(
     resourceType: 'device_command',
     resourceId: cmd!.id,
     requestId: args.requestId,
-    metadata: { bookingId: booking.id, compartmentId: booking.compartmentId, purpose, via: args.via },
+    metadata: {
+      bookingId: booking.id,
+      compartmentId: booking.compartmentId,
+      purpose,
+      via: args.via,
+    },
   });
   return cmd!;
 }

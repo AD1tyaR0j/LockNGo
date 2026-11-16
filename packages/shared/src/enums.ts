@@ -42,7 +42,13 @@ export type DoorState = (typeof DOOR_STATES)[number];
 export const OUTLET_STATUSES = ['DRAFT', 'ACTIVE', 'SUSPENDED'] as const;
 export type OutletStatus = (typeof OUTLET_STATUSES)[number];
 
-export const DEVICE_STATUSES = ['PROVISIONED', 'ONLINE', 'OFFLINE', 'FAULT', 'DECOMMISSIONED'] as const;
+export const DEVICE_STATUSES = [
+  'PROVISIONED',
+  'ONLINE',
+  'OFFLINE',
+  'FAULT',
+  'DECOMMISSIONED',
+] as const;
 export type DeviceStatus = (typeof DEVICE_STATUSES)[number];
 
 export const BOOKING_STATUSES = [
