@@ -90,18 +90,23 @@ const LAYOUT: { code: string; size: CompartmentSize; maxWeightGrams: number }[] 
 export async function seed() {
   const cfg = config();
   if (cfg.NODE_ENV === 'production') throw new Error('Refusing to seed demo data in production');
-  const password = process.env.SEED_DEMO_PASSWORD ?? 'LockerDemo#2026';
+  // `||` (not `??`): an empty SEED_DEMO_PASSWORD= line in .env means "use the default".
+  const password = process.env.SEED_DEMO_PASSWORD || 'LockerDemo#2026';
+  if (password.length < 10) throw new Error('SEED_DEMO_PASSWORD must be at least 10 characters');
   await runMigrations();
   const db = getDb();
 
   for (const u of DEMO_USERS) {
     const [existing] = await db.select().from(users).where(sql`lower(${users.email}) = ${u.email}`);
+    const passwordHash = await hashPassword(password);
+    if (existing) {
+      // Demo accounts only: keep their password in sync with the current seed password.
+      await db.update(users).set({ passwordHash }).where(eq(users.id, existing.id));
+    }
     const userId =
       existing?.id ??
-      (await db
-        .insert(users)
-        .values({ name: u.name, email: u.email, passwordHash: await hashPassword(password) })
-        .returning())[0]!.id;
+      (await db.insert(users).values({ name: u.name, email: u.email, passwordHash }).returning())[0]!
+        .id;
     for (const r of u.roles) {
       const [role] = await db.select().from(roles).where(eq(roles.name, r));
       await db.insert(userRoles).values({ userId, roleId: role!.id }).onConflictDoNothing();
