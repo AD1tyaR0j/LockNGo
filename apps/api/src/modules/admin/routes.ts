@@ -181,7 +181,7 @@ adminRouter.get('/outlets/:outletId', requirePermission('admin:outlets:read'), a
                c.door_state, ${displayStatusSql(now)} AS display_status
         FROM compartments c
         WHERE c.locker_bank_id IN (${sql.join(bankIds.map((b) => sql`${b}::uuid`), sql`, `)})
-        ORDER BY c.code`)
+        ORDER BY c.size, length(c.code), c.code`)
     : { rows: [] };
   const lockerBanksDto: AdminLockerBank[] = banks.map((b) => {
     const d = devs.find((x) => x.lockerBankId === b.id);

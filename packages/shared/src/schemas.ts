@@ -4,7 +4,7 @@ import {
   COMPARTMENT_SIZES,
   DEVICE_EVENT_TYPES,
   OUTLET_STATUSES,
-} from './enums.js';
+} from './enums';
 
 /** Hard platform limits for MVP. Commercial values (prices) live in admin-configured pricing rules. */
 export const BOOKING_LIMITS = {

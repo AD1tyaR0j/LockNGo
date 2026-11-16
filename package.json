@@ -2,7 +2,9 @@
   "name": "smart-locker-platform",
   "private": true,
   "packageManager": "pnpm@10.28.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev --parallel",
@@ -13,7 +15,8 @@
     "format:check": "prettier --check .",
     "db:migrate": "pnpm --filter @sl/api db:migrate",
     "db:seed": "pnpm --filter @sl/api db:seed",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test"
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "sim": "pnpm --filter @sl/device-simulator start"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

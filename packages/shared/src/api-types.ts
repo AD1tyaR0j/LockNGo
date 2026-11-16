@@ -10,8 +10,8 @@ import type {
   OutletStatus,
   PaymentStatus,
   Role,
-} from './enums.js';
-import type { OperatingHours } from './schemas.js';
+} from './enums';
+import type { OperatingHours } from './schemas';
 
 export interface ApiError {
   error: { code: string; message: string; requestId: string; details?: unknown };
