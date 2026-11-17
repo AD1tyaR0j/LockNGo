@@ -9,6 +9,7 @@ import { revokeCredentials } from '../modules/storage/service.js';
 import { recordBookingEvent, transitionBooking } from '../modules/storage/transitions.js';
 
 const SYSTEM: Actor = { type: 'SYSTEM', id: 'sweeper' };
+const HEALTH_SNAPSHOT_RETENTION_DAYS = 7;
 
 export interface SweepResult {
   expiredHolds: number;
@@ -16,6 +17,8 @@ export interface SweepResult {
   expiredCommands: number;
   doorLeftOpen: number;
   devicesOffline: number;
+  prunedSessions: number;
+  prunedHealthSnapshots: number;
 }
 
 /**
@@ -32,6 +35,8 @@ export async function runSweep(): Promise<SweepResult> {
     expiredCommands: 0,
     doorLeftOpen: 0,
     devicesOffline: 0,
+    prunedSessions: 0,
+    prunedHealthSnapshots: 0,
   };
 
   // 1. Unpaid holds past their payment window release inventory.
@@ -160,6 +165,18 @@ export async function runSweep(): Promise<SweepResult> {
       metadata: { to: 'OFFLINE', reason: 'HEARTBEAT_TIMEOUT' },
     });
   }
+
+  // 6. Retention: expired/revoked sessions (kept 1 day for debugging) and device health
+  //    snapshots older than the retention window. Audit tables are never pruned here.
+  const pruned = await db.execute(sql`
+    DELETE FROM sessions
+    WHERE expires_at < ${addSeconds(now, -86_400).toISOString()}::timestamptz
+       OR revoked_at < ${addSeconds(now, -86_400).toISOString()}::timestamptz`);
+  result.prunedSessions = pruned.rowCount ?? 0;
+  const snaps = await db.execute(sql`
+    DELETE FROM device_health_snapshots
+    WHERE recorded_at < ${addSeconds(now, -HEALTH_SNAPSHOT_RETENTION_DAYS * 86_400).toISOString()}::timestamptz`);
+  result.prunedHealthSnapshots = snaps.rowCount ?? 0;
 
   return result;
 }

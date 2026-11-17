@@ -1,12 +1,7 @@
 import { z } from 'zod';
 import { ACCESS_PURPOSES, COMPARTMENT_SIZES, DEVICE_EVENT_TYPES, OUTLET_STATUSES } from './enums';
 
-/** Hard platform limits for MVP. Commercial values (prices) live in admin-configured pricing rules. */
-export const BOOKING_LIMITS = {
-  minHours: 1,
-  maxHours: 72,
-  maxAdvanceDays: 7,
-} as const;
+import { BOOKING_LIMITS } from './constants';
 
 const email = z.string().trim().toLowerCase().email().max(254);
 
@@ -36,7 +31,7 @@ export const operatingHoursSchema = z
   .strict();
 export type OperatingHours = z.infer<typeof operatingHoursSchema>;
 
-export const createOutletSchema = z.object({
+const outletFields = {
   name: z.string().trim().min(1).max(160),
   address: z.string().trim().min(1).max(500),
   city: z.string().trim().min(1).max(100),
@@ -45,10 +40,20 @@ export const createOutletSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   operatingHours: operatingHoursSchema,
-  status: z.enum(OUTLET_STATUSES).default('DRAFT'),
+  status: z.enum(OUTLET_STATUSES),
+};
+
+export const createOutletSchema = z.object({
+  ...outletFields,
+  status: outletFields.status.default('DRAFT'),
 });
 export type CreateOutletInput = z.infer<typeof createOutletSchema>;
-export const updateOutletSchema = createOutletSchema.partial();
+/**
+ * Built from the default-free field set on purpose: with Zod 4, `.partial()` on a schema
+ * with `.default()` fields fills those defaults in, so a PATCH of just `name` would
+ * silently reset `status` to DRAFT and unpublish the outlet.
+ */
+export const updateOutletSchema = z.object(outletFields).partial().strict();
 export type UpdateOutletInput = z.infer<typeof updateOutletSchema>;
 
 export const createLockerBankSchema = z.object({

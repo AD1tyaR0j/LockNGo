@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
-import { BOOKING_STATUSES } from '@sl/shared';
+import { BOOKING_STATUSES } from '@sl/shared/constants';
 import { DataState, StatusBadge } from '@/components/ui';
 import { formatInr, formatTime, useAdminData } from '@/lib/client';
 

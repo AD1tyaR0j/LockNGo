@@ -340,6 +340,7 @@ export const storageBookings = pgTable(
     index('storage_bookings_customer_idx').on(t.customerId, t.createdAt),
     index('storage_bookings_compartment_idx').on(t.compartmentId, t.status),
     index('storage_bookings_status_idx').on(t.status),
+    index('storage_bookings_created_idx').on(t.createdAt),
     check('storage_bookings_range_valid', sql`${t.expiresAt} > ${t.startsAt}`),
   ],
 );
@@ -389,21 +390,25 @@ export const accessCredentials = pgTable(
   ],
 );
 
-export const payments = pgTable('payments', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  bookingId: uuid('booking_id')
-    .notNull()
-    .references(() => storageBookings.id),
-  provider: text('provider').notNull(),
-  providerOrderId: text('provider_order_id').notNull().unique(),
-  providerPaymentId: text('provider_payment_id'),
-  amountMinor: integer('amount_minor').notNull(),
-  currency: text('currency').notNull().default('INR'),
-  status: paymentStatus('status').notNull(),
-  failureReason: text('failure_reason'),
-  createdAt: createdAt(),
-  updatedAt: ts('updated_at').notNull().defaultNow(),
-});
+export const payments = pgTable(
+  'payments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    bookingId: uuid('booking_id')
+      .notNull()
+      .references(() => storageBookings.id),
+    provider: text('provider').notNull(),
+    providerOrderId: text('provider_order_id').notNull().unique(),
+    providerPaymentId: text('provider_payment_id'),
+    amountMinor: integer('amount_minor').notNull(),
+    currency: text('currency').notNull().default('INR'),
+    status: paymentStatus('status').notNull(),
+    failureReason: text('failure_reason'),
+    createdAt: createdAt(),
+    updatedAt: ts('updated_at').notNull().defaultNow(),
+  },
+  (t) => [index('payments_booking_idx').on(t.bookingId)],
+);
 
 export const paymentWebhookEvents = pgTable(
   'payment_webhook_events',
@@ -448,6 +453,7 @@ export const deviceCommands = pgTable(
       .on(t.compartmentId)
       .where(sql`${t.status} IN ('PENDING','DELIVERED','ACKNOWLEDGED')`),
     index('device_commands_device_status_idx').on(t.deviceId, t.status),
+    index('device_commands_booking_idx').on(t.bookingId),
   ],
 );
 

@@ -29,6 +29,12 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     });
     return;
   }
+  if (err && typeof err === 'object' && (err as { type?: string }).type === 'entity.too.large') {
+    res.status(413).json({
+      error: { code: 'PAYLOAD_TOO_LARGE', message: 'Request body is too large', requestId },
+    });
+    return;
+  }
   // Malformed JSON bodies from express.json()
   if (err && typeof err === 'object' && (err as { type?: string }).type === 'entity.parse.failed') {
     res

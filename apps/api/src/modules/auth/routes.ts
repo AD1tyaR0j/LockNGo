@@ -17,18 +17,40 @@ import { addHours, clock } from '../../lib/clock.js';
 import { config } from '../../config.js';
 import { requireUser } from '../../middleware/context.js';
 
+const rateLimitedMessage = (req: { requestId: string }) => ({
+  error: {
+    code: 'RATE_LIMITED',
+    message: 'Too many attempts. Try again later.',
+    requestId: req.requestId,
+  },
+});
+const testMode = () => config().NODE_ENV === 'test';
+
+/** Per client IP (the real socket address unless TRUST_PROXY_HOPS is configured). */
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: () => (config().NODE_ENV === 'test' ? 1000 : 20),
+  limit: () => (testMode() ? 1000 : 20),
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  message: (req: { requestId: string }) => ({
-    error: {
-      code: 'RATE_LIMITED',
-      message: 'Too many attempts. Try again later.',
-      requestId: req.requestId,
-    },
-  }),
+  message: rateLimitedMessage,
+});
+
+/**
+ * Per target account, counting only failed logins: stops credential guessing spread across
+ * many IPs. Trade-off: an attacker can temporarily lock a known email out of password login
+ * for the window; acceptable for MVP, revisit with OTP/CAPTCHA.
+ */
+const accountLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: () => (testMode() ? 1000 : 10),
+  skipSuccessfulRequests: true,
+  keyGenerator: (req) => {
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    return `login:${email.slice(0, 254)}`;
+  },
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: rateLimitedMessage,
 });
 
 async function loadMe(db: DbOrTx, userId: string): Promise<Me> {
@@ -101,7 +123,7 @@ authRouter.post('/register', authLimiter, async (req, res) => {
   }
 });
 
-authRouter.post('/login', authLimiter, async (req, res) => {
+authRouter.post('/login', authLimiter, accountLoginLimiter, async (req, res) => {
   const input = loginSchema.parse(req.body);
   const db = getDb();
   const [u] = await db

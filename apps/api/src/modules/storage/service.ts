@@ -306,7 +306,21 @@ export function nextAccessPurpose(
 }
 
 export async function getBookingDetail(db: DbOrTx, bookingId: string): Promise<BookingDetail> {
-  const [row] = await db
+  const [detail] = await getBookingDetails(db, [bookingId]);
+  if (!detail) throw notFound('Booking');
+  return detail;
+}
+
+/**
+ * Loads full booking details for many bookings with a fixed number of queries (4), regardless of
+ * how many ids are passed. Result order follows `bookingIds`; unknown ids are omitted.
+ */
+export async function getBookingDetails(
+  db: DbOrTx,
+  bookingIds: string[],
+): Promise<BookingDetail[]> {
+  if (bookingIds.length === 0) return [];
+  const rows = await db
     .select({
       b: storageBookings,
       outlet: { id: outlets.id, name: outlets.name, address: outlets.address },
@@ -321,66 +335,90 @@ export async function getBookingDetail(db: DbOrTx, bookingId: string): Promise<B
     .innerJoin(lockerBanks, eq(lockerBanks.id, compartments.lockerBankId))
     .leftJoin(devices, eq(devices.lockerBankId, lockerBanks.id))
     .innerJoin(priceQuotes, eq(priceQuotes.id, storageBookings.priceQuoteId))
-    .where(eq(storageBookings.id, bookingId));
-  if (!row) throw notFound('Booking');
-  const [payment] = await db
+    .where(inArray(storageBookings.id, bookingIds));
+  if (rows.length === 0) return [];
+  const ids = rows.map((r) => r.b.id);
+
+  const paymentRows = await db
     .select()
     .from(payments)
-    .where(eq(payments.bookingId, bookingId))
-    .orderBy(desc(payments.createdAt))
-    .limit(1);
-  const [cmd] = await db
+    .where(inArray(payments.bookingId, ids))
+    .orderBy(desc(payments.createdAt));
+  const latestPayment = new Map<string, (typeof paymentRows)[number]>();
+  for (const p of paymentRows)
+    if (!latestPayment.has(p.bookingId)) latestPayment.set(p.bookingId, p);
+
+  const cmdRows = await db
     .select()
     .from(deviceCommands)
     .where(
       and(
-        eq(deviceCommands.bookingId, bookingId),
+        inArray(deviceCommands.bookingId, ids),
         inArray(deviceCommands.status, ['PENDING', 'DELIVERED', 'ACKNOWLEDGED']),
       ),
-    )
-    .limit(1);
-  const events = await db
+    );
+  const pendingCmd = new Map(cmdRows.map((c) => [c.bookingId!, c]));
+
+  const eventRows = await db
     .select()
     .from(bookingEvents)
-    .where(eq(bookingEvents.bookingId, bookingId))
+    .where(inArray(bookingEvents.bookingId, ids))
     .orderBy(bookingEvents.id);
-  const b = row.b;
-  return {
-    id: b.id,
-    reference: b.reference,
-    status: b.status,
-    outlet: row.outlet,
-    compartment: {
-      code: row.compartment.code,
-      size: row.compartment.size,
-      lockerBankLabel: row.bankLabel,
-      isSimulated: row.isSimulated ?? false,
-    },
-    startsAt: b.startsAt.toISOString(),
-    expiresAt: b.expiresAt.toISOString(),
-    paymentHoldExpiresAt:
-      b.status === 'PENDING_PAYMENT' ? (b.paymentHoldExpiresAt?.toISOString() ?? null) : null,
-    total: { amountMinor: b.amountMinor, currency: 'INR' },
-    breakdown: row.breakdown,
-    payment: payment ? paymentSummary(payment) : null,
-    nextAccessPurpose: nextAccessPurpose(b, clock.now()),
-    pendingCommand: cmd
-      ? {
-          id: cmd.id,
-          purpose: cmd.purpose,
-          status: cmd.status,
-          expiresAt: cmd.expiresAt.toISOString(),
-        }
-      : null,
-    events: events.map((e) => ({
-      id: String(e.id),
-      type: e.eventType,
-      actorType: e.actorType,
-      createdAt: e.createdAt.toISOString(),
-      metadata: e.metadata,
-    })),
-    createdAt: b.createdAt.toISOString(),
-  };
+  const eventsByBooking = new Map<string, (typeof eventRows)[number][]>();
+  for (const e of eventRows) {
+    const list = eventsByBooking.get(e.bookingId) ?? [];
+    list.push(e);
+    eventsByBooking.set(e.bookingId, list);
+  }
+
+  const now = clock.now();
+  const byId = new Map(
+    rows.map((row): [string, BookingDetail] => {
+      const b = row.b;
+      const payment = latestPayment.get(b.id);
+      const cmd = pendingCmd.get(b.id);
+      return [
+        b.id,
+        {
+          id: b.id,
+          reference: b.reference,
+          status: b.status,
+          outlet: row.outlet,
+          compartment: {
+            code: row.compartment.code,
+            size: row.compartment.size,
+            lockerBankLabel: row.bankLabel,
+            isSimulated: row.isSimulated ?? false,
+          },
+          startsAt: b.startsAt.toISOString(),
+          expiresAt: b.expiresAt.toISOString(),
+          paymentHoldExpiresAt:
+            b.status === 'PENDING_PAYMENT' ? (b.paymentHoldExpiresAt?.toISOString() ?? null) : null,
+          total: { amountMinor: b.amountMinor, currency: 'INR' },
+          breakdown: row.breakdown,
+          payment: payment ? paymentSummary(payment) : null,
+          nextAccessPurpose: nextAccessPurpose(b, now),
+          pendingCommand: cmd
+            ? {
+                id: cmd.id,
+                purpose: cmd.purpose,
+                status: cmd.status,
+                expiresAt: cmd.expiresAt.toISOString(),
+              }
+            : null,
+          events: (eventsByBooking.get(b.id) ?? []).map((e) => ({
+            id: String(e.id),
+            type: e.eventType,
+            actorType: e.actorType,
+            createdAt: e.createdAt.toISOString(),
+            metadata: e.metadata,
+          })),
+          createdAt: b.createdAt.toISOString(),
+        },
+      ];
+    }),
+  );
+  return bookingIds.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []));
 }
 
 /** Loads a booking only if owned by the customer. Returns 404 (not 403) to avoid leaking existence. */

@@ -124,6 +124,32 @@ describe('admin inventory and compartment control', () => {
     expect(JSON.stringify(res.body)).not.toMatch(/SIM-|deviceIdentifier|credential/);
   });
 
+  it('a partial outlet update changes only the given fields (does not reset status)', async () => {
+    const t = await admin();
+    const o = await createOutlet();
+    const res = await api()
+      .patch(`/api/v1/admin/outlets/${o.outletId}`)
+      .set(auth(t))
+      .send({ name: 'Renamed outlet' });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ name: 'Renamed outlet', status: 'ACTIVE' });
+    expect(res.body.operatingHours.is24x7).toBe(true);
+    const unknown = await api()
+      .patch(`/api/v1/admin/outlets/${o.outletId}`)
+      .set(auth(t))
+      .send({ hostPartnerId: '00000000-0000-4000-8000-000000000000' });
+    expect(unknown.status).toBe(400);
+  });
+
+  it('rejects oversized request bodies with 413', async () => {
+    const res = await api()
+      .post('/api/v1/auth/register')
+      .set('content-type', 'application/json')
+      .send(JSON.stringify({ name: 'x'.repeat(200_000) }));
+    expect(res.status).toBe(413);
+    expect(res.body.error.code).toBe('PAYLOAD_TOO_LARGE');
+  });
+
   it('draft outlets are not publicly visible', async () => {
     const t = await admin();
     const o = await createOutlet();

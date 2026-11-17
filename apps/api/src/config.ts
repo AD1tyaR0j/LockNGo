@@ -11,6 +11,12 @@ const envSchema = z
     PORT: z.coerce.number().int().default(4000),
     DATABASE_URL: z.string().url(),
     CORS_ORIGINS: z.string().default('http://localhost:3000,http://localhost:8081'),
+    /**
+     * Express `trust proxy` setting. Leave 0 unless the API sits behind a known reverse proxy /
+     * load balancer: trusting X-Forwarded-For otherwise lets clients fake their IP and bypass
+     * rate limits. Set to the number of proxy hops in front of the API (e.g. 1).
+     */
+    TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
     LOG_LEVEL: z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .default('info'),

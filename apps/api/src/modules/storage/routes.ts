@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { count, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import {
@@ -18,6 +18,7 @@ import {
   createBooking,
   createStorageQuote,
   getBookingDetail,
+  getBookingDetails,
   getOwnedBooking,
   issueCredential,
   requestAccessFromApp,
@@ -26,7 +27,8 @@ import {
 const accessLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: () => (config().NODE_ENV === 'test' ? 1000 : 10),
-  keyGenerator: (req) => req.user?.id ?? req.ip ?? 'anon',
+  // Per user; IPv6 addresses are grouped by /64 so a client cannot rotate addresses.
+  keyGenerator: (req) => req.user?.id ?? ipKeyGenerator(req.ip ?? '0.0.0.0'),
   standardHeaders: 'draft-7',
   legacyHeaders: false,
 });
@@ -82,7 +84,10 @@ storageRouter.get('/bookings', async (req, res) => {
     .from(storageBookings)
     .where(eq(storageBookings.customerId, user.id));
   res.json({
-    items: await Promise.all(rows.map((r) => getBookingDetail(db, r.id))),
+    items: await getBookingDetails(
+      db,
+      rows.map((r) => r.id),
+    ),
     total: total?.n ?? 0,
     limit: p.limit,
     offset: p.offset,

@@ -50,12 +50,12 @@ function deviceDto(d: typeof devices.$inferSelect): AdminDevice {
   };
 }
 
-async function outletDto(o: typeof outlets.$inferSelect): Promise<AdminOutlet> {
-  const [sim] = await getDb()
-    .select({ n: count() })
-    .from(devices)
-    .innerJoin(lockerBanks, eq(lockerBanks.id, devices.lockerBankId))
-    .where(and(eq(lockerBanks.outletId, o.id), eq(devices.isSimulated, true)));
+/** Qualified explicitly: Drizzle renders single-table column refs unqualified (see outlets/routes). */
+const outletSimulatedFlag = sql<boolean>`EXISTS (
+  SELECT 1 FROM locker_banks lb JOIN devices d ON d.locker_bank_id = lb.id
+  WHERE lb.outlet_id = "outlets"."id" AND d.is_simulated)`;
+
+function toOutletDto(o: typeof outlets.$inferSelect, hasSimulatedDevices: boolean): AdminOutlet {
   return {
     id: o.id,
     name: o.name,
@@ -66,10 +66,18 @@ async function outletDto(o: typeof outlets.$inferSelect): Promise<AdminOutlet> {
     latitude: o.latitude,
     longitude: o.longitude,
     operatingHours: o.operatingHours,
-    hasSimulatedDevices: (sim?.n ?? 0) > 0,
+    hasSimulatedDevices,
     status: o.status,
     createdAt: o.createdAt.toISOString(),
   };
+}
+
+async function outletDto(o: typeof outlets.$inferSelect): Promise<AdminOutlet> {
+  const [row] = await getDb()
+    .select({ sim: outletSimulatedFlag })
+    .from(outlets)
+    .where(eq(outlets.id, o.id));
+  return toOutletDto(o, row?.sim ?? false);
 }
 
 export const adminRouter = Router();
@@ -133,8 +141,11 @@ adminRouter.get('/overview', requirePermission('admin:dashboard:read'), async (_
 
 // ------------------------------------------------------------ outlets
 adminRouter.get('/outlets', requirePermission('admin:outlets:read'), async (_req, res) => {
-  const rows = await getDb().select().from(outlets).orderBy(outlets.city, outlets.name);
-  res.json({ items: await Promise.all(rows.map(outletDto)) });
+  const rows = await getDb()
+    .select({ o: outlets, sim: outletSimulatedFlag })
+    .from(outlets)
+    .orderBy(outlets.city, outlets.name);
+  res.json({ items: rows.map((r) => toOutletDto(r.o, r.sim)) });
 });
 
 adminRouter.post('/outlets', requirePermission('admin:outlets:write'), async (req, res) => {

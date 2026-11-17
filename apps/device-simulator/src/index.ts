@@ -24,7 +24,7 @@ const SCENARIOS = {
   'ack-fail': 'Acknowledge commands with result FAILED (lock jammed)',
   'door-stuck-open': 'Open the door but never report it closed (door-left-open alert)',
   'duplicate-events': 'Send every event twice (backend must deduplicate)',
-  'out-of-order': 'Send DOOR_CLOSED before DOOR_OPENED with a stale sequence',
+  'out-of-order': 'Deliver a stale DOOR_CLOSED after DOOR_OPENED (must be ignored)',
   flaky: 'Drop ~50% of heartbeats and delay acks by 3s',
 } as const;
 type Scenario = keyof typeof SCENARIOS;
@@ -157,9 +157,11 @@ class SimulatedLocker {
     if (result === 'FAILED') return;
 
     if (this.scenario === 'out-of-order') {
-      const stale = this.sequence - 1000;
-      await this.event('DOOR_CLOSED', cmd.compartmentCode, cmd.commandId, stale);
+      // Network reordering: a DOOR_CLOSED stamped *before* the door-open arrives *after* it.
+      // If the backend applied it, the booking would complete while the door is still open.
+      const delayedSequence = ++this.sequence;
       await this.event('DOOR_OPENED', cmd.compartmentCode, cmd.commandId);
+      await this.event('DOOR_CLOSED', cmd.compartmentCode, cmd.commandId, delayedSequence);
       await sleep(this.doorHoldMs);
       await this.event('DOOR_CLOSED', cmd.compartmentCode, cmd.commandId);
       return;

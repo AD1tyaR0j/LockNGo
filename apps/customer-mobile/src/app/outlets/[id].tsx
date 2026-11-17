@@ -1,13 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import {
-  BOOKING_LIMITS,
-  type CompartmentSize,
-  type OutletSummary,
-  type SizeAvailability,
-  type StorageQuote,
-} from '@sl/shared';
+import { BOOKING_LIMITS } from '@sl/shared/constants';
+import type { CompartmentSize, OutletSummary, SizeAvailability, StorageQuote } from '@sl/shared';
 import {
   Banner,
   Button,

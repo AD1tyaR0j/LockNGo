@@ -18,6 +18,13 @@ export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:400
   '',
 );
 
+// Release builds must never send credentials over plain HTTP (loopback is exempt: it never
+// leaves the machine, and is what local release-mode test builds use).
+const isLoopback = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(API_URL);
+if (!__DEV__ && !API_URL.startsWith('https://') && !isLoopback) {
+  throw new Error('EXPO_PUBLIC_API_URL must use https:// in release builds');
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,

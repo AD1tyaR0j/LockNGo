@@ -18,7 +18,7 @@ export function createApp() {
   const cfg = config();
   const app = express();
   app.disable('x-powered-by');
-  app.set('trust proxy', 1);
+  app.set('trust proxy', cfg.TRUST_PROXY_HOPS);
   app.use(helmet());
   app.use(requestId);
   app.use(
