@@ -117,7 +117,7 @@ This runs Prettier, ESLint, TypeScript across all workspaces, and the API test s
 recreates the schema of the database in `TEST_DATABASE_URL` (default `smartlocker_test`; it refuses any
 database whose name doesn't end in `_test`).
 
-59 API tests cover: concurrent double-booking (8 customers racing for one compartment), the
+60 API tests cover: concurrent double-booking (8 customers racing for one compartment), the
 database `EXCLUDE` constraint, failed/late/duplicate/mis-signed/mis-priced payment webhooks, hold
 expiry releasing inventory, cross-customer isolation, role permissions, device-event-driven
 transitions, offline device, unlock timeout, door left open, unauthorised door opening, tamper,

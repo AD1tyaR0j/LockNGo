@@ -276,7 +276,12 @@ export default function OutletDetailPage({ params }: { params: Promise<{ outletI
                     <span className="muted">last seen {formatTime(bank.device.lastSeenAt)}</span>
                   </div>
                 ) : (
-                  <button onClick={() => setRegistering(bank.id)}>Register device</button>
+                  <button
+                    aria-expanded={registering === bank.id}
+                    onClick={() => setRegistering(registering === bank.id ? null : bank.id)}
+                  >
+                    {registering === bank.id ? 'Cancel' : 'Register device'}
+                  </button>
                 )}
               </div>
               {!bank.device && registering === bank.id ? (

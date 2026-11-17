@@ -26,8 +26,22 @@ const rateLimitedMessage = (req: { requestId: string }) => ({
 });
 const testMode = () => config().NODE_ENV === 'test';
 
-/** Per client IP (the real socket address unless TRUST_PROXY_HOPS is configured). */
-const authLimiter = rateLimit({
+/**
+ * Failed logins per client IP (the real socket address unless TRUST_PROXY_HOPS is set).
+ * Successful logins are not counted: many Indian mobile users share one public IP behind
+ * carrier-grade NAT, so counting every sign-in would lock out legitimate customers.
+ */
+const loginIpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: () => (testMode() ? 1000 : 30),
+  skipSuccessfulRequests: true,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: rateLimitedMessage,
+});
+
+/** Account creation per client IP (all attempts count; limits scripted sign-up abuse). */
+const registerLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: () => (testMode() ? 1000 : 20),
   standardHeaders: 'draft-7',
@@ -85,7 +99,7 @@ async function createSession(db: DbOrTx, userId: string, userAgent?: string) {
 
 export const authRouter = Router();
 
-authRouter.post('/register', authLimiter, async (req, res) => {
+authRouter.post('/register', registerLimiter, async (req, res) => {
   const input = registerSchema.parse(req.body);
   const passwordHash = await hashPassword(input.password);
   const db = getDb();
@@ -123,7 +137,7 @@ authRouter.post('/register', authLimiter, async (req, res) => {
   }
 });
 
-authRouter.post('/login', authLimiter, accountLoginLimiter, async (req, res) => {
+authRouter.post('/login', loginIpLimiter, accountLoginLimiter, async (req, res) => {
   const input = loginSchema.parse(req.body);
   const db = getDb();
   const [u] = await db

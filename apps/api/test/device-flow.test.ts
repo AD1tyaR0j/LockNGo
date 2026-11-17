@@ -301,3 +301,30 @@ describe('kiosk PIN credential', () => {
     expect((await verify(second.body.pin)).status).toBe(202);
   });
 });
+
+describe('retention', () => {
+  it('prunes expired sessions and old device health snapshots, keeping recent ones', async () => {
+    const { getDb } = await import('../src/db/client.js');
+    const { sql } = await import('drizzle-orm');
+    const o = await createOutlet();
+    await heartbeat(o.deviceToken);
+    const c = await registerCustomer();
+    // Age the customer's session and the device's snapshot by moving the clock forward 8 days.
+    vi.spyOn(clock, 'now').mockReturnValue(addSeconds(new Date(), 8 * 86_400));
+    const r = await runSweep();
+    vi.restoreAllMocks();
+    expect(r.prunedSessions).toBeGreaterThanOrEqual(1);
+    expect(r.prunedHealthSnapshots).toBeGreaterThanOrEqual(1);
+    const left = await getDb().execute<{ n: number }>(
+      sql`SELECT count(*)::int AS n FROM device_health_snapshots WHERE device_id = ${o.deviceId}`,
+    );
+    expect(left.rows[0]!.n).toBe(0);
+    // The pruned session no longer authenticates; a fresh login does.
+    expect((await api().get('/api/v1/me').set(auth(c.token))).status).toBe(401);
+    // Audit logs are never pruned.
+    const audit = await getDb().execute<{ n: number }>(
+      sql`SELECT count(*)::int AS n FROM audit_logs`,
+    );
+    expect(audit.rows[0]!.n).toBeGreaterThan(0);
+  });
+});
