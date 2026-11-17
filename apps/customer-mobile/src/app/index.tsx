@@ -1,14 +1,15 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { RefreshControl, View } from 'react-native';
+import { RefreshControl, Text, View } from 'react-native';
 import type { BookingDetail } from '@sl/shared';
 import { BookingRow, LIVE_STATUSES } from '../components/booking-row';
-import { Banner, Button, Card, H1, H2, P, Screen } from '../components/ui';
+import { Banner, Button, H2, Hero, P, Screen, useTheme } from '../components/ui';
 import { api, ApiError } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
 export default function Home() {
   const { user, signOut } = useAuth();
+  const t = useTheme();
   const [items, setItems] = useState<BookingDetail[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -41,12 +42,26 @@ export default function Home() {
         />
       }
     >
-      <H1>Hi {user?.name.split(' ')[0]}</H1>
-      <Card>
-        <H2>Store belongings</H2>
-        <P muted>Book a locker by size and hours. Pay, then open it from this app.</P>
-        <Button testID="store" title="Find a locker" onPress={() => router.push('/outlets')} />
-      </Card>
+      <Hero>
+        <Text style={{ color: t.heroMuted, fontSize: 15, fontWeight: '600' }}>
+          Hi {user?.name.split(' ')[0]} 👋
+        </Text>
+        <Text
+          accessibilityRole="header"
+          style={{ color: t.heroText, fontSize: 26, fontWeight: '800', letterSpacing: -0.3 }}
+        >
+          Travel light. Store your bags.
+        </Text>
+        <Text style={{ color: t.heroMuted, fontSize: 15, lineHeight: 21 }}>
+          Book a locker by size and hours, pay, then open it right from this app.
+        </Text>
+        <Button
+          testID="store"
+          variant="highlight"
+          title="Find a locker"
+          onPress={() => router.push('/outlets')}
+        />
+      </Hero>
       <P muted style={{ fontSize: 13 }}>
         Sending and receiving parcels is planned for a later release.
       </P>

@@ -31,30 +31,40 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="login">
-      <div className="card stack">
-        <div>
-          <h1>Smart Locker Admin</h1>
-          <p className="muted">Staff sign-in. Customer accounts cannot access this console.</p>
+    <main className="login-page">
+      <div className="login">
+        <div className="brand">
+          <span className="brand-mark" aria-hidden="true">
+            S
+          </span>
+          Smart Locker
         </div>
-        <form className="stack" onSubmit={submit}>
-          <label>
-            Email
-            <input name="email" type="email" autoComplete="username" required />
-          </label>
-          <label>
-            Password
-            <input name="password" type="password" autoComplete="current-password" required />
-          </label>
-          {error ? (
-            <div className="alert error" role="alert">
-              {error}
-            </div>
-          ) : null}
-          <button className="primary" type="submit" disabled={busy}>
-            {busy ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
+        <div className="card stack">
+          <div>
+            <h1>Staff sign-in</h1>
+            <p className="muted">
+              Admin control center. Customer accounts cannot access this console.
+            </p>
+          </div>
+          <form className="stack" onSubmit={submit}>
+            <label>
+              Email
+              <input name="email" type="email" autoComplete="username" required />
+            </label>
+            <label>
+              Password
+              <input name="password" type="password" autoComplete="current-password" required />
+            </label>
+            {error ? (
+              <div className="alert error" role="alert">
+                {error}
+              </div>
+            ) : null}
+            <button className="primary" type="submit" disabled={busy}>
+              {busy ? 'Signing in…' : 'Sign in'}
+            </button>
+          </form>
+        </div>
       </div>
     </main>
   );

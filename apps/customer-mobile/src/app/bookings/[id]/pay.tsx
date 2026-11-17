@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import type { BookingDetail } from '@sl/shared';
-import { Banner, Button, Card, H1, Loading, P, Screen } from '../../../components/ui';
+import { Banner, Button, Card, Loading, P, Screen, useTheme } from '../../../components/ui';
 import { api, ApiError } from '../../../lib/api';
 import { formatInr, formatTime } from '../../../lib/format';
 
@@ -12,6 +12,7 @@ import { formatInr, formatTime } from '../../../lib/format';
  */
 export default function MockCheckout() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const t = useTheme();
   const [b, setB] = useState<BookingDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<'success' | 'failure' | null>(null);
@@ -66,7 +67,9 @@ export default function MockCheckout() {
         TEST PAYMENT — no real money moves. A real payment gateway (e.g. Razorpay) will replace this
         screen after merchant onboarding.
       </Banner>
-      <H1>{formatInr(b.total.amountMinor)}</H1>
+      <P style={{ fontSize: 34, fontWeight: '800', color: t.highlight }}>
+        {formatInr(b.total.amountMinor)}
+      </P>
       <Card>
         <P>{b.outlet.name}</P>
         <P muted>

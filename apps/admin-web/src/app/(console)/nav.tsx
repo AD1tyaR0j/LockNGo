@@ -19,7 +19,12 @@ export function Nav() {
   }
   return (
     <aside className="sidebar">
-      <div className="brand">Smart Locker Admin</div>
+      <div className="brand">
+        <span className="brand-mark" aria-hidden="true">
+          S
+        </span>
+        Smart Locker Admin
+      </div>
       <nav className="nav" aria-label="Main">
         {LINKS.map((l) => {
           const active = l.href === '/' ? path === '/' : path.startsWith(l.href);

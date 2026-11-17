@@ -21,9 +21,21 @@ interface Overview {
 
 const sum = (r: Record<string, number>) => Object.values(r).reduce((a, b) => a + b, 0);
 
-function Kpi({ label, value, sub }: { label: string; value: number | string; sub?: string }) {
+type Tone = 'accent' | 'ok' | 'warn' | 'danger' | 'info';
+
+function Kpi({
+  label,
+  value,
+  sub,
+  tone = 'accent',
+}: {
+  label: string;
+  value: number | string;
+  sub?: string;
+  tone?: Tone;
+}) {
   return (
-    <div className="card kpi">
+    <div className={`card kpi tone-${tone}`}>
       <div className="label">{label}</div>
       <div className="value">{value}</div>
       {sub ? <div className="sub">{sub}</div> : null}
@@ -64,18 +76,31 @@ export default function OverviewPage() {
               />
               <Kpi
                 label="Devices online"
+                tone={
+                  (data.devices.byStatus.OFFLINE ?? 0) + (data.devices.byStatus.FAULT ?? 0) > 0
+                    ? 'danger'
+                    : 'ok'
+                }
                 value={`${data.devices.byStatus.ONLINE ?? 0} / ${sum(data.devices.byStatus)}`}
                 sub={`${data.devices.byStatus.OFFLINE ?? 0} offline · ${data.devices.byStatus.FAULT ?? 0} fault`}
               />
               <Kpi
                 label="Compartments"
+                tone="ok"
                 value={sum(data.compartments)}
                 sub={`${data.compartments.AVAILABLE ?? 0} available now`}
               />
-              <Kpi label="Reserved" value={data.compartments.RESERVED ?? 0} />
-              <Kpi label="Occupied" value={data.compartments.OCCUPIED ?? 0} />
+              <Kpi label="Reserved" tone="info" value={data.compartments.RESERVED ?? 0} />
+              <Kpi label="Occupied" tone="warn" value={data.compartments.OCCUPIED ?? 0} />
               <Kpi
                 label="Out of service"
+                tone={
+                  (data.compartments.OUT_OF_SERVICE ?? 0) +
+                    (data.compartments.NEEDS_INSPECTION ?? 0) >
+                  0
+                    ? 'danger'
+                    : 'ok'
+                }
                 value={
                   (data.compartments.OUT_OF_SERVICE ?? 0) +
                   (data.compartments.NEEDS_INSPECTION ?? 0)

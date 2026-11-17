@@ -186,7 +186,9 @@ export default function BookStorage() {
             style={[styles.line, { borderTopWidth: 1, borderTopColor: t.border, paddingTop: 8 }]}
           >
             <P style={{ fontWeight: '700' }}>Total</P>
-            <P style={{ fontWeight: '700' }}>{formatInr(quote.total.amountMinor)}</P>
+            <P style={{ fontWeight: '800', fontSize: 18, color: t.highlight }}>
+              {formatInr(quote.total.amountMinor)}
+            </P>
           </View>
           <P muted style={{ fontSize: 13 }}>
             Price valid until {formatTime(quote.quoteExpiresAt)}. Locker is held for a few minutes

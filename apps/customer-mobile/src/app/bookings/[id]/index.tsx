@@ -2,7 +2,18 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Platform, RefreshControl, View } from 'react-native';
 import type { AccessPurpose, BookingDetail, CredentialIssued } from '@sl/shared';
-import { Banner, Button, Card, H1, H2, Loading, P, Pill, Screen } from '../../../components/ui';
+import {
+  Banner,
+  Button,
+  Card,
+  H1,
+  H2,
+  Loading,
+  P,
+  Pill,
+  Screen,
+  useTheme,
+} from '../../../components/ui';
 import { api, ApiError } from '../../../lib/api';
 import { formatInr, formatTime, SIZE_LABEL, STATUS_LABEL } from '../../../lib/format';
 
@@ -38,6 +49,7 @@ function confirmAction(message: string): Promise<boolean> {
 
 export default function BookingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const t = useTheme();
   const [b, setB] = useState<BookingDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pin, setPin] = useState<CredentialIssued | null>(null);
@@ -175,7 +187,10 @@ export default function BookingScreen() {
           <H2>Locker keypad PIN</H2>
           {pin ? (
             <>
-              <P style={{ fontSize: 32, fontWeight: '700', letterSpacing: 6 }} testID="pin">
+              <P
+                style={{ fontSize: 34, fontWeight: '800', letterSpacing: 8, color: t.highlight }}
+                testID="pin"
+              >
                 {pin.pin}
               </P>
               <P muted>Shown once. Don&apos;t share it. Valid until {formatTime(pin.expiresAt)}.</P>
